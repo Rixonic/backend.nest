@@ -1,7 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('sensors')
-export class Sensor {
+export abstract class Sensor extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -29,3 +28,14 @@ export class Sensor {
   @Column()
   location: string;
 }
+
+
+
+@Entity({ name: 'sensors', schema: 'enfermeria' })
+export class NurserySensor extends Sensor {}
+
+@Entity({ name: 'sensors', schema: 'laboratorio' })
+export class LabroatorySensor extends Sensor {}
+
+@Entity({ name: 'sensors', schema: 'farmacia' })
+export class FarmacySensor extends Sensor {}
