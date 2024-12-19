@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Sensor } from 'src/sensors/sensor.entity';  // Importa la entidad Sensor
 import { SensorReading } from 'src/sensorReadings/sensorReading.entity';  // Importa la entidad SensorReading
-import { SensorsService } from 'src/sensors/sensor.service';  // Importa el servicio de Sensors
-import { SensorReadingsService } from 'src/sensorReadings/sensorReading.service';  // Importa el servicio de SensorReadings
+import { SensorService } from './test.service';  // Importa el servicio de Sensors
+import { SensorReadingsService } from './test.service';  // Importa el servicio de SensorReadings
 import { TestController } from './test.controller';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
@@ -25,7 +25,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
       useFactory: (connection) => connection.getRepository(SensorReading),
       inject: ['TypeORMInstance'],
     },
-    SensorsService,
+    SensorService,
     SensorReadingsService,
   ],
   controllers: [TestController],

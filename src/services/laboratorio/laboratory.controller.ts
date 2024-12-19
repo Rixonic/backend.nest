@@ -11,14 +11,13 @@ import { CreateSensorReadingDto } from 'src/sensorReadings/dto/create-sensorRead
 import { CreateSensorDto } from 'src/sensors/dto/create-sensor.dto';
 import { ReadSensorReadingDto } from 'src/sensorReadings/dto/read-sensorReading.dto';
 import { Sensor } from 'src/sensors/sensor.entity';
-import { SensorsService } from 'src/sensors/sensor.service';
-import { SensorReading } from 'src/sensorReadings/sensorReading.entity';
-import { SensorReadingsService } from 'src/sensorReadings/sensorReading.service';
+import { SensorService } from './laboratory.service';
+import { SensorReadingsService } from './laboratory.service';
 
 @Controller('laboratorio')
 export class LaboratoryController {
   constructor(
-    private readonly sensorsService: SensorsService,
+    private readonly sensorsService: SensorService,
     private readonly sensorReadingsService: SensorReadingsService,
   ) {}
 

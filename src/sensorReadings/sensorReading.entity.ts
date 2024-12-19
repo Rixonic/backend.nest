@@ -1,8 +1,7 @@
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn, CreateDateColumn, BaseEntity } from 'typeorm';
 import { Sensor } from '../sensors/sensor.entity';
 
-@Entity('historic')
-export class SensorReading {
+export abstract class SensorReading extends BaseEntity {
   @CreateDateColumn({ type: 'timestamp' })
   @PrimaryColumn()
   timestamp: Date; // Clave primaria (parte 1)
@@ -17,3 +16,16 @@ export class SensorReading {
   @JoinColumn({ name: 'sensor_id' }) 
   sensor: Sensor;
 }
+
+
+@Entity({ name: 'historic', schema: 'enfermeria' })
+export class NurserySensorReading extends SensorReading {}
+
+@Entity({ name: 'historic', schema: 'laboratorio' })
+export class LaboratorySensorReading extends SensorReading {}
+
+@Entity({ name: 'historic', schema: 'farmacia' })
+export class FarmacySensorReading extends SensorReading {}
+
+@Entity({ name: 'historic', schema: 'public' })
+export class TestSensorReading extends SensorReading {}

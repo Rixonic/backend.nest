@@ -30,12 +30,14 @@ export abstract class Sensor extends BaseEntity {
 }
 
 
-
 @Entity({ name: 'sensors', schema: 'enfermeria' })
 export class NurserySensor extends Sensor {}
 
 @Entity({ name: 'sensors', schema: 'laboratorio' })
-export class LabroatorySensor extends Sensor {}
+export class LaboratorySensor extends Sensor {}
 
 @Entity({ name: 'sensors', schema: 'farmacia' })
 export class FarmacySensor extends Sensor {}
+
+@Entity({ name: 'sensors', schema: 'public' })
+export class TestSensor extends Sensor {}

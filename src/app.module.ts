@@ -5,16 +5,6 @@ import { NurseryModule } from './services/enfermeria/nursery.module';
 import { LaboratoryModule } from './services/laboratorio/laboratory.module';
 import { FarmacyModule } from './services/farmacia/farmacy.module';
 
-const defaultOptions = {
-  type: 'postgres',
-  port: 5432,
-  username: 'user',
-  password: 'password',
-  database: 'db',
-  synchronize: true,
-};
-
-
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -25,11 +15,13 @@ const defaultOptions = {
       password: 'toor',
       database: 'dbTestSensor',
       autoLoadEntities: true,
-      schema: 'public', // Esquema específico
+      //schema: 'public', // Esquema específico
       //synchronize: true,
-      name: 'testConnection', // Nombre para identificar la conexión
     }),
     TestModule,
+    NurseryModule,
+    FarmacyModule,
+    LaboratoryModule
   ],
 })
 export class AppModule { }
