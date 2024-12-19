@@ -1,5 +1,13 @@
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn, CreateDateColumn, BaseEntity } from 'typeorm';
-import { Sensor } from '../sensors/sensor.entity';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  BaseEntity,
+} from 'typeorm';
+import { NurserySensor, LaboratorySensor, FarmacySensor, TestSensor } from '../sensors/sensor.entity';
 
 export abstract class SensorReading extends BaseEntity {
   @CreateDateColumn({ type: 'timestamp' })
@@ -11,21 +19,32 @@ export abstract class SensorReading extends BaseEntity {
 
   @Column('decimal')
   temp: number; // Temperatura registrada
-
-  @ManyToOne(() => Sensor)
-  @JoinColumn({ name: 'sensor_id' }) 
-  sensor: Sensor;
 }
 
-
 @Entity({ name: 'historic', schema: 'enfermeria' })
-export class NurserySensorReading extends SensorReading {}
+export class NurserySensorReading extends SensorReading {
+  @ManyToOne(() => NurserySensor)
+  @JoinColumn({ name: 'sensor_id' }) 
+  sensor: NurserySensor;
+}
 
 @Entity({ name: 'historic', schema: 'laboratorio' })
-export class LaboratorySensorReading extends SensorReading {}
+export class LaboratorySensorReading extends SensorReading {
+  @ManyToOne(() => LaboratorySensor)
+  @JoinColumn({ name: 'sensor_id' })
+  sensor: LaboratorySensor;
+}
 
 @Entity({ name: 'historic', schema: 'farmacia' })
-export class FarmacySensorReading extends SensorReading {}
+export class FarmacySensorReading extends SensorReading {
+  @ManyToOne(() => FarmacySensor)
+  @JoinColumn({ name: 'sensor_id' })
+  sensor: FarmacySensor;
+}
 
 @Entity({ name: 'historic', schema: 'public' })
-export class TestSensorReading extends SensorReading {}
+export class TestSensorReading extends SensorReading {
+  @ManyToOne(() => TestSensor)
+  @JoinColumn({ name: 'sensor_id' })
+  sensor: TestSensor;
+}
