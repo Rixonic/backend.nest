@@ -13,7 +13,7 @@ import { FarmacyModule } from './services/farmacia/farmacy.module';
       port: 5432,
       username: 'postgres',
       password: 'toor',
-      database: 'dbTestSensor',
+      database: 'dbSensors',
       autoLoadEntities: true,
       //schema: 'public', // Esquema específico
       //synchronize: true,
