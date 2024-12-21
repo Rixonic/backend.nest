@@ -22,6 +22,9 @@ export abstract class Sensor extends BaseEntity {
   @Column({ default: 3600 })
   time: number;
 
+  @Column({ default: 0 })
+  offset: number;
+
   @Column({ default: "Heladera" })
   type: string;
 
