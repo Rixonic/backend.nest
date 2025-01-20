@@ -6,6 +6,7 @@ import { NurserySensor, Sensor } from '../../sensors/sensor.entity';
 import { NurserySensorReading, SensorReading } from 'src/sensorReadings/sensorReading.entity';
 import { ReadSensorReadingDto } from 'src/sensorReadings/dto/read-sensorReading.dto';
 import { CreateSensorReadingDto } from 'src/sensorReadings/dto/create-sensorReading.dto';
+import { UpdateSensorDto } from 'src/sensors/dto/update-sensor.dto';
 
 @Injectable()
 export class SensorService {
@@ -29,6 +30,45 @@ export class SensorService {
   findOne(id: number): Promise<Sensor> {
     return this.sensorsRepository.findOneBy({ id: id });
   }
+
+  async updateOne(id:number,sensorDto: UpdateSensorDto): Promise<Sensor | null> {
+    const sensor = await this.sensorsRepository.findOne({ where: { id } });
+
+    if (!sensor) {
+      return null
+    }
+
+    const updatedFields: Partial<Sensor> = {};
+  
+    if (sensorDto.name !== undefined) {
+      updatedFields.name = sensorDto.name;
+    }
+  
+    if (sensorDto.labId !== undefined) {
+      updatedFields.labId = sensorDto.labId;
+    }
+  
+    if (sensorDto.location !== undefined) {
+      updatedFields.location = sensorDto.location;
+    }
+
+    if (sensorDto.max !== undefined) {
+      updatedFields.max = sensorDto.max;
+    }
+  
+    if (sensorDto.min !== undefined) {
+      updatedFields.min = sensorDto.min;
+    }
+  
+    if (sensorDto.location !== undefined) {
+      updatedFields.time = sensorDto.time;
+    }
+
+    await this.sensorsRepository.update(id, updatedFields);
+
+    return this.sensorsRepository.findOne({ where: { id } });
+  }
+  
 }
 
 
@@ -83,7 +123,7 @@ export class SensorReadingsService {
       order: {
         timestamp: 'DESC', // Ordenamos por timestamp en orden descendente
       },
-      take: 60, // Limitamos a las últimas 30 entradas
+      take: 20, // Limitamos a las últimas 30 entradas
     })
 
     const tempArray = sensorReadings.map(row => row.temp).reverse();;
@@ -97,12 +137,13 @@ export class SensorReadingsService {
     return formattedResult;
   }
 
-  async findInterval(sensorId: number, date: { start: Date, end: Date }): Promise<ReadSensorReadingDto> {
-
+  async findInterval(sensorId: number,  start: Date, end: Date ): Promise<ReadSensorReadingDto> {
+    console.log("Start: ",start)
+    console.log("End: ",end)
     const sensorReadings = await this.sensorReadingsRepository.find({
       where: {
         sensor_id: sensorId,
-        timestamp: Between(date.start, date.end),
+        timestamp: Between(start, end),
       },
       order: {
         timestamp: 'DESC',
