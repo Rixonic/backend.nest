@@ -41,6 +41,3 @@ export class LaboratorySensor extends Sensor {}
 
 @Entity({ name: 'sensors', schema: 'farmacia' })
 export class FarmacySensor extends Sensor {}
-
-@Entity({ name: 'sensors', schema: 'public' })
-export class TestSensor extends Sensor {}
