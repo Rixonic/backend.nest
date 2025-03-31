@@ -14,5 +14,6 @@ import { LaboratoryController } from './laboratory.controller';
     SensorReadingsService,  // Registra el servicio de SensorReadings
   ],
   controllers: [LaboratoryController],
+  exports: [SensorService, SensorReadingsService], // Exporta los servicios
 })
 export class LaboratoryModule {}

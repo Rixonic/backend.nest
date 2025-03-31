@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{codigo}}_{{labId}}_{{month}}_{{year}}</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap"
+    />
+    <!-- Incluye Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 10pt;
+        box-sizing: border-box;
+      }
+
+      table {
+        border-collapse: collapse;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 29.7cm;
+        height: 21cm;
+        margin: 0;
+      }
+
+      .textContainer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+      }
+
+      h1 {
+        font-size: 8pt;
+        font-weight: bold;
+        text-align: center;
+      }
+      th {
+        font-weight: normal;
+      }
+
+      span {
+        font-size: large;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+
+  <body>
+    <table border="1" style="width: 100%; height: 100%; margin: auto">
+      <thead>
+        <tr style="height: 10px">
+          <th rowspan="7" style="width: 140px">
+            <img src="https://hsjd.minio.frank4.com.ar/public/LogoSJD-Completo.png" width="100%" />
+          </th>
+          <th
+            rowspan="3"
+            style="font-weight: bolder; font-size: larger; text-align: center"
+          >
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+              "
+            >
+              <span>LABORATORIO CLINICO</span>
+              <img
+                src="https://hsjd.minio.frank4.com.ar/public/LogoSJD-Laboratorio.png"
+                height="48px"
+                style="margin-right: 10px"
+              />
+            </div>
+          </th>
+          <th style="width: 120px">Codigo:</th>
+          <th style="width: 125px">{{codigo}}</th>
+        </tr>
+        <tr style="height: 10px">
+          <th>Version:</th>
+          <th>4</th>
+        </tr>
+        <tr style="height: 10px">
+          <th>Aprobado:</th>
+          <th>2/9/2024</th>
+        </tr>
+        <tr style="height: 10px">
+          <th rowspan="4" style="font-weight: bold; font-size: x-large">
+            CONTROL DE TEMPERATURA DE {{type}}S
+          </th>
+          <th>Elaboro:</th>
+          <th>Gestion de Calidad</th>
+        </tr>
+        <tr style="height: 10px">
+          <th>Reviso:</th>
+          <th>Gestion de Calidad</th>
+        </tr>
+        <tr style="height: 10px">
+          <th>Aprobo:</th>
+          <th>Jefe de Laboratorio</th>
+        </tr>
+        <tr style="height: 10px">
+          <th colspan="2">Pagina 1 de 1</th>
+        </tr>
+        <tr style="height: 40px">
+          <th colspan="4" style="width: 100px;background-color: #EEECE1;">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                padding-left: 40px;
+                padding-right: 80px;
+                align-items: center;
+              "
+            >
+              <h1>MES: <span>{{month}}</span></h1>
+              <h1>AÑO: <span>{{year}}</span></h1>
+              <h1>{{type}}: <span>{{name}}</span></h1>
+              <h1>CODIGO: <span>{{labId}}</span></h1>
+              <h1>TOLERANCIA: +/- 1 °C</h1>
+            </div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th colspan="4" style="padding: 20px">
+            <canvas id="temperatureChart"></canvas>
+          </th>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr style="height: 40px">
+          <td style="padding-left: 5px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <div>Fecha:</div>
+              <div style="text-align: center; flex-grow: 1; font-weight: bolder">{{date}}</div>
+            </div>
+          </td>
+          <td style="padding-left: 5px">Observaciones:</td>
+          <td style="padding-left: 5px" colspan="2">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <div>
+                Responsable <br />
+                control final:
+              </div>
+              <div
+                style="text-align: center; flex-grow: 1; font-weight: bolder"
+              >
+                Coordinador técnico
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <script>
+      // Datos de ejemplo: tiempo y temperatura
+      const tiempo = {{time}};
+      const temperatura = {{temp}};
+
+      // Configura el gráfico
+      const ctx = document.getElementById("temperatureChart").getContext("2d");
+      const temperatureChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: tiempo,
+          datasets: [
+            {
+              label: "Temperatura",
+              data: temperatura,
+              borderColor: "rgb(1, 80, 192)",
+              borderWidth: 1,
+              fill: false,
+              pointRadius: 0, // Elimina los puntos
+            },
+          ],
+        },
+        options: {
+          animation: false,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            x: {
+              type: "time",
+              time: {
+                parser: "dd/MM/yyyy HH:mm:ss",
+                tooltipFormat: "dd/MM/yyyy HH:mm",
+                unit: "day",
+                displayFormats: {
+                  day: "dd/MM/yyyy",
+                },
+              },
+              title: {
+                display: true,
+                text: "Tiempo",
+              },
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Temperatura (°C)",
+              },
+            },
+          },
+        },
+      });
+
+      // Emitir un evento personalizado cuando el gráfico se haya renderizado
+      const temperatureChartCanvas =
+        document.getElementById("temperatureChart");
+      temperatureChartCanvas.addEventListener("rendered", () => {
+        window.rendered = true;
+      });
+    </script>
+  </body>
+</html>

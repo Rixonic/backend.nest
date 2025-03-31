@@ -138,8 +138,8 @@ export class SensorReadingsService {
   }
 
   async findInterval(sensorId: number,  start: Date, end: Date ): Promise<ReadSensorReadingDto> {
-    console.log("Start: ",start)
-    console.log("End: ",end)
+    //console.log("Start: ",start)
+    //console.log("End: ",end)
     const sensorReadings = await this.sensorReadingsRepository.find({
       where: {
         sensor_id: sensorId,

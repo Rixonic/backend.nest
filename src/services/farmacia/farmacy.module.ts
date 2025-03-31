@@ -1,17 +1,18 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FarmacySensor, Sensor } from 'src/sensors/sensor.entity';  // Importa la entidad Sensor
-import { FarmacySensorReading, SensorReading } from 'src/sensorReadings/sensorReading.entity';  // Importa la entidad SensorReading
-import { SensorService } from './farmacy.service'; // Importa el servicio de Sensors
-import { SensorReadingsService } from './farmacy.service';  // Importa el servicio de SensorReadings
+import { FarmacySensor } from 'src/sensors/sensor.entity';
+import { FarmacySensorReading } from 'src/sensorReadings/sensorReading.entity';
+import { SensorService } from './farmacy.service';
+import { SensorReadingsService } from './farmacy.service';
 import { FarmacyController } from './farmacy.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([FarmacySensor, FarmacySensorReading])],
   providers: [
-    SensorService,  // Registra el servicio de Sensors
-    SensorReadingsService,  // Registra el servicio de SensorReadings
+    SensorService,
+    SensorReadingsService,
   ],
   controllers: [FarmacyController],
+  exports: [SensorService, SensorReadingsService],
 })
 export class FarmacyModule {}
