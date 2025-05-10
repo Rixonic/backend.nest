@@ -15,6 +15,7 @@ import { ReadSensorReadingDto } from 'src/sensorReadings/dto/read-sensorReading.
 import { Sensor } from 'src/sensors/sensor.entity';
 import { PLCService } from './plc.service';
 import { UpdateSensorDto } from 'src/sensors/dto/update-sensor.dto';
+import { Alarms } from 'src/plc/plc.entity';
 
 @Controller('plc')
 export class PLCController {
@@ -26,7 +27,7 @@ export class PLCController {
 
 
   @Get('/alarms')
-  findAll(): Promise<Sensor[]> {
+  findAll(): Promise<Alarms[]> {
     return this.PLCService.findAll();
   }
 }

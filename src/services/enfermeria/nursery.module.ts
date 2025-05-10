@@ -7,7 +7,9 @@ import { SensorReadingsService } from './nursery.service';
 import { NurseryController } from './nursery.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([NurserySensor, NurserySensorReading])],
+  imports: [
+    TypeOrmModule.forFeature([NurserySensor, NurserySensorReading], 'sensors')
+  ],
   providers: [
     SensorService,
     SensorReadingsService,

@@ -6,12 +6,12 @@ import { Alarms } from 'src/plc/plc.entity';
 @Injectable()
 export class PLCService {
   constructor(
-    @InjectRepository(Alarms)
-    private readonly PLCRepository: Repository<Alarms>,
+    @InjectRepository(Alarms, 'plc')
+    private readonly alarmsRepository: Repository<Alarms>,
   ) { }
 
-  async findAll(): Promise<any> {
-    return this.PLCRepository.find({
+  async findAll(): Promise<Alarms[]> {
+    return this.alarmsRepository.find({
       order: { e3TimeStamp: 'DESC' },
     });
   }

@@ -7,7 +7,9 @@ import { SensorReadingsService } from './farmacy.service';
 import { FarmacyController } from './farmacy.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FarmacySensor, FarmacySensorReading])],
+  imports: [
+    TypeOrmModule.forFeature([FarmacySensor, FarmacySensorReading], 'sensors')
+  ],
   providers: [
     SensorService,
     SensorReadingsService,

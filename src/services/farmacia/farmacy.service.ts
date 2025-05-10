@@ -11,7 +11,7 @@ import { UpdateSensorDto } from 'src/sensors/dto/update-sensor.dto';
 @Injectable()
 export class SensorService {
   constructor(
-    @InjectRepository(FarmacySensor)
+    @InjectRepository(FarmacySensor, 'sensors')
     private readonly sensorsRepository: Repository<FarmacySensor>,
   ) { }
 
@@ -75,7 +75,7 @@ export class SensorService {
 @Injectable()
 export class SensorReadingsService {
   constructor(
-    @InjectRepository(FarmacySensorReading)
+    @InjectRepository(FarmacySensorReading, 'sensors')
     private readonly sensorReadingsRepository: Repository<FarmacySensorReading>,
   ) { }
 

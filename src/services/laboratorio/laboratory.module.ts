@@ -1,19 +1,20 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FarmacySensor, LaboratorySensor, Sensor } from 'src/sensors/sensor.entity';  // Importa la entidad Sensor
-import { FarmacySensorReading, LaboratorySensorReading, SensorReading } from 'src/sensorReadings/sensorReading.entity';  // Importa la entidad SensorReading
-import { SensorService } from './laboratory.service';  // Importa el servicio de Sensors
-import { SensorReadingsService } from './laboratory.service';  // Importa el servicio de SensorReadings
+import { LaboratorySensor } from 'src/sensors/sensor.entity';
+import { LaboratorySensorReading } from 'src/sensorReadings/sensorReading.entity';
+import { SensorService } from './laboratory.service';
+import { SensorReadingsService } from './laboratory.service';
 import { LaboratoryController } from './laboratory.controller';
 
-
 @Module({
-  imports: [TypeOrmModule.forFeature([LaboratorySensor, LaboratorySensorReading])],
+  imports: [
+    TypeOrmModule.forFeature([LaboratorySensor, LaboratorySensorReading], 'sensors')
+  ],
   providers: [
-    SensorService,  // Registra el servicio de Sensors
-    SensorReadingsService,  // Registra el servicio de SensorReadings
+    SensorService,
+    SensorReadingsService,
   ],
   controllers: [LaboratoryController],
-  exports: [SensorService, SensorReadingsService], // Exporta los servicios
+  exports: [SensorService, SensorReadingsService],
 })
 export class LaboratoryModule {}

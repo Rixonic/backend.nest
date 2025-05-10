@@ -6,7 +6,7 @@ import { PLCController } from './plc.controller';
 
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Alarms],'BMS.server')],
+  imports: [TypeOrmModule.forFeature([Alarms], 'plc')],
   providers: [
     PLCService,  // Registra el servicio de Sensors
   ],
