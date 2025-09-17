@@ -3,3 +3,5 @@ export class ReadSensorReadingDto {
   //timestamp: Date;
   temp: number[];
 }
+
+

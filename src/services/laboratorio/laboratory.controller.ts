@@ -55,6 +55,14 @@ export class LaboratoryController {
     return this.sensorReadingsService.findLast(id);
   }
 
+  @Get('/sensor/last/v2/:id')
+  findLastV2(@Param('id', ParseIntPipe) id: number): Promise<{
+    timestamp: Date; // un único valor, no array
+    temp: number;
+  }[]> {
+    return this.sensorReadingsService.findLastV2(id);
+  }
+
   @Get('/sensor/interval/:id')
   findInterval(
     @Param('id', ParseIntPipe) id: number,
