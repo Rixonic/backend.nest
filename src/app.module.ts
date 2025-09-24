@@ -7,7 +7,9 @@ import { PLCModule } from './services/plc/plc.module';
 import { PdfModule } from './pdf/pdf.module';
 import { NurserySensor, LaboratorySensor, FarmacySensor } from './sensors/sensor.entity';
 import { NurserySensorReading, LaboratorySensorReading, FarmacySensorReading } from './sensorReadings/sensorReading.entity';
+import { TankSensorReading, CisternaSensorReading } from './agua/agua.entity';
 import { Alarms } from './plc/plc.entity';
+import { WaterModule } from './services/agua/agua.module';
 
 @Module({
   imports: [
@@ -20,7 +22,7 @@ import { Alarms } from './plc/plc.entity';
       username: 'postgres',
       password: 'toor',
       database: 'dbSensors',
-      entities: [NurserySensor, LaboratorySensor, FarmacySensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading],
+      entities: [NurserySensor, LaboratorySensor, FarmacySensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, TankSensorReading, CisternaSensorReading],
       autoLoadEntities: false,
       synchronize: false,
     }),
@@ -46,7 +48,8 @@ import { Alarms } from './plc/plc.entity';
     NurseryModule,
     FarmacyModule,
     LaboratoryModule,
-    PdfModule
+    PdfModule,
+    WaterModule
   ],
 })
 export class AppModule { }
