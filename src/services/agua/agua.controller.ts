@@ -47,6 +47,17 @@ export class WaterController {
     return this.tanqueReadingsService.findInterval(start,end);
   }
 
+  @Get('/tanque/interval/v2')
+  findIntervalV2Tanque(
+    @Query('start') start: Date,
+    @Query('end') end: Date
+  ): Promise<{
+    timestamp: Date; // un único valor, no array
+    level: number;
+  }[]> {
+    return this.tanqueReadingsService.findIntervalV2(start,end);
+  }
+
   @Post('tanque/readings')
   insertManyTanque(@Body() createReadingsDto: CreateSensorDto): Promise<string> {
     return this.tanqueReadingsService.createOne(createReadingsDto);
@@ -73,6 +84,17 @@ export class WaterController {
     @Query('end') end: Date
   ): Promise<ReadSensorReadingDto> {
     return this.cisternaReadingsService.findInterval(start,end);
+  }
+
+  @Get('/cisterna/interval/v2')
+  findIntervalV2Cisterna(
+    @Query('start') start: Date,
+    @Query('end') end: Date
+  ): Promise<{
+    timestamp: Date; // un único valor, no array
+    level: number;
+  }[]> {
+    return this.cisternaReadingsService.findIntervalV2(start,end);
   }
 
   @Post('cisterna/readings')

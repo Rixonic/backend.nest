@@ -36,7 +36,7 @@ export class TanqueReadingsService {
     const sensorReadings = await this.sensorReadingsRepository.find()
 
     const levelArray = sensorReadings.map(row => row.level).reverse();;
-  const timestampArray = sensorReadings.map(row => row.timestamp).reverse();
+    const timestampArray = sensorReadings.map(row => row.timestamp).reverse();
 
     const formattedResult = {
       level: levelArray,
@@ -75,7 +75,7 @@ export class TanqueReadingsService {
       order: {
         timestamp: 'DESC', // Ordenamos por timestamp en orden descendente
       },
-      take: 20, // Limitamos a las últimas 30 entradas
+      take: 60, // Limitamos a las últimas 30 entradas
     })
 
     //const tempArray = sensorReadings.map(row => row.temp).reverse();;
@@ -87,15 +87,15 @@ export class TanqueReadingsService {
     //};
 
     return sensorReadings
-    .map(reading => ({
-      timestamp: new Date(reading.timestamp),
-      level: Number(reading.level), // Aseguramos que sea number
-      //sensor_id: reading.sensor_id
-    }))
-    .reverse();
+      .map(reading => ({
+        timestamp: new Date(reading.timestamp),
+        level: Number(reading.level), // Aseguramos que sea number
+        //sensor_id: reading.sensor_id
+      }))
+      .reverse();
   }
 
-  async findInterval(  start: Date, end: Date ): Promise<ReadSensorReadingDto> {
+  async findInterval(start: Date, end: Date): Promise<ReadSensorReadingDto> {
     //console.log("Start: ",start)
     //console.log("End: ",end)
     const sensorReadings = await this.sensorReadingsRepository.find({
@@ -118,6 +118,30 @@ export class TanqueReadingsService {
 
     return formattedResult;
   }
+
+  async findIntervalV2(start: Date, end: Date): Promise<{
+    timestamp: Date; // un único valor, no array
+    level: number;
+  }[]> {
+    const sensorReadings = await this.sensorReadingsRepository.find({
+      where: {
+        timestamp: Between(start, end),
+      },
+      order: {
+        timestamp: 'DESC',
+      },
+      //take: 30, 
+    })
+
+    return sensorReadings
+      .map(reading => ({
+        timestamp: new Date(reading.timestamp),
+        level: Number(reading.level), // Aseguramos que sea number
+        //sensor_id: reading.sensor_id
+      }))
+      .reverse();
+  }
+
 }
 
 @Injectable()
@@ -151,7 +175,7 @@ export class CisternaReadingsService {
     const sensorReadings = await this.sensorReadingsRepository.find()
 
     const levelArray = sensorReadings.map(row => row.level).reverse();;
-  const timestampArray = sensorReadings.map(row => row.timestamp).reverse();
+    const timestampArray = sensorReadings.map(row => row.timestamp).reverse();
 
     const formattedResult = {
       level: levelArray,
@@ -202,15 +226,15 @@ export class CisternaReadingsService {
     //};
 
     return sensorReadings
-    .map(reading => ({
-      timestamp: new Date(reading.timestamp),
-      level: Number(reading.level), // Aseguramos que sea number
-      //sensor_id: reading.sensor_id
-    }))
-    .reverse();
+      .map(reading => ({
+        timestamp: new Date(reading.timestamp),
+        level: Number(reading.level), // Aseguramos que sea number
+        //sensor_id: reading.sensor_id
+      }))
+      .reverse();
   }
 
-  async findInterval(start: Date, end: Date ): Promise<ReadSensorReadingDto> {
+  async findInterval(start: Date, end: Date): Promise<ReadSensorReadingDto> {
     //console.log("Start: ",start)
     //console.log("End: ",end)
     const sensorReadings = await this.sensorReadingsRepository.find({
@@ -232,5 +256,30 @@ export class CisternaReadingsService {
     };
 
     return formattedResult;
+  }
+
+  async findIntervalV2(start: Date, end: Date): Promise<{
+    timestamp: Date; // un único valor, no array
+    level: number;
+  }[]> {
+    //console.log("Start: ",start)
+    //console.log("End: ",end)
+    const sensorReadings = await this.sensorReadingsRepository.find({
+      where: {
+        timestamp: Between(start, end),
+      },
+      order: {
+        timestamp: 'DESC',
+      },
+      //take: 30, 
+    })
+
+    return sensorReadings
+      .map(reading => ({
+        timestamp: new Date(reading.timestamp),
+        level: Number(reading.level), // Aseguramos que sea number
+        //sensor_id: reading.sensor_id
+      }))
+      .reverse();
   }
 }
