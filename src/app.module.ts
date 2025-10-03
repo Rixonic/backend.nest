@@ -5,11 +5,12 @@ import { LaboratoryModule } from './services/laboratorio/laboratory.module';
 import { FarmacyModule } from './services/farmacia/farmacy.module';
 import { PLCModule } from './services/plc/plc.module';
 import { PdfModule } from './pdf/pdf.module';
-import { NurserySensor, LaboratorySensor, FarmacySensor } from './sensors/sensor.entity';
-import { NurserySensorReading, LaboratorySensorReading, FarmacySensorReading } from './sensorReadings/sensorReading.entity';
+import { NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor } from './sensors/sensor.entity';
+import { NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading } from './sensorReadings/sensorReading.entity';
 import { TankSensorReading, CisternaSensorReading } from './agua/agua.entity';
 import { Alarms } from './plc/plc.entity';
 import { WaterModule } from './services/agua/agua.module';
+import { SystemModule } from './services/sistemas/system.module';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { WaterModule } from './services/agua/agua.module';
       username: 'postgres',
       password: 'toor',
       database: 'dbSensors',
-      entities: [NurserySensor, LaboratorySensor, FarmacySensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, TankSensorReading, CisternaSensorReading],
+      entities: [NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading, TankSensorReading, CisternaSensorReading],
       autoLoadEntities: false,
       synchronize: false,
     }),
@@ -47,6 +48,7 @@ import { WaterModule } from './services/agua/agua.module';
     PLCModule,
     NurseryModule,
     FarmacyModule,
+    SystemModule,
     LaboratoryModule,
     PdfModule,
     WaterModule

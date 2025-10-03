@@ -40,3 +40,6 @@ export class LaboratorySensor extends Sensor {}
 
 @Entity({ name: 'sensors', schema: 'farmacia', database: 'sensors' })
 export class FarmacySensor extends Sensor {}
+
+@Entity({ name: 'sensors', schema: 'sistemas', database: 'sensors' })
+export class SystemSensor extends Sensor {}

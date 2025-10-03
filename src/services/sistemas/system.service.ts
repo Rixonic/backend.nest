@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 import { CreateSensorDto } from 'src/sensors/dto/create-sensor.dto';
-import { NurserySensor, Sensor } from '../../sensors/sensor.entity';
-import { NurserySensorReading, SensorReading } from 'src/sensorReadings/sensorReading.entity';
+import { SystemSensor, Sensor } from '../../sensors/sensor.entity';
+import { SystemSensorReading, SensorReading } from 'src/sensorReadings/sensorReading.entity';
 import { ReadSensorReadingDto } from 'src/sensorReadings/dto/read-sensorReading.dto';
 import { CreateSensorReadingDto } from 'src/sensorReadings/dto/create-sensorReading.dto';
 import { UpdateSensorDto } from 'src/sensors/dto/update-sensor.dto';
@@ -11,12 +11,12 @@ import { UpdateSensorDto } from 'src/sensors/dto/update-sensor.dto';
 @Injectable()
 export class SensorService {
   constructor(
-    @InjectRepository(NurserySensor, 'sensors')
-    private readonly sensorsRepository: Repository<NurserySensor>,
+    @InjectRepository(SystemSensor, 'sensors')
+    private readonly sensorsRepository: Repository<SystemSensor>,
   ) { }
 
   create(createSensorDto: CreateSensorDto): Promise<Sensor> {
-    const sensor = new NurserySensor();
+    const sensor = new SystemSensor();
     sensor.sensorId = createSensorDto.sensorId;
     //sensor.lastName = createSensorDto.lastName;
 
@@ -75,12 +75,12 @@ export class SensorService {
 @Injectable()
 export class SensorReadingsService {
   constructor(
-    @InjectRepository(NurserySensorReading, 'sensors')
-    private readonly sensorReadingsRepository: Repository<NurserySensorReading>,
+    @InjectRepository(SystemSensorReading, 'sensors')
+    private readonly sensorReadingsRepository: Repository<SystemSensorReading>,
   ) { }
 
   createOne(createSensorReadingDto: CreateSensorReadingDto): Promise<SensorReading> {
-    const sensorReading = new NurserySensorReading();
+    const sensorReading = new SystemSensorReading();
     sensorReading.sensor_id = createSensorReadingDto.id;
     sensorReading.temp = createSensorReadingDto.temp;
 
@@ -89,7 +89,7 @@ export class SensorReadingsService {
 
   async createMany(createSensorReadingsDto: CreateSensorReadingDto[]): Promise<string> {
     const sensorReadings = createSensorReadingsDto.map(dto => {
-      const sensorReading = new NurserySensorReading();
+      const sensorReading = new SystemSensorReading();
       sensorReading.sensor_id = dto.id;
       sensorReading.temp = dto.temp;
       //sensorReading.timestamp = new Date();  // Asumiendo que timestamp es el momento actual
@@ -168,8 +168,8 @@ export class SensorReadingsService {
   }
 
   async findInterval(sensorId: number,  start: Date, end: Date ): Promise<ReadSensorReadingDto> {
-    console.log("Start: ",start)
-    console.log("End: ",end)
+    //console.log("Start: ",start)
+    //console.log("End: ",end)
     const sensorReadings = await this.sensorReadingsRepository.find({
       where: {
         sensor_id: sensorId,

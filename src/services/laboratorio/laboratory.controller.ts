@@ -72,6 +72,18 @@ export class LaboratoryController {
     return this.sensorReadingsService.findInterval(id,start,end);
   }
 
+  @Get('/sensor/interval/v2/:id')
+  findIntervalV2(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('start') start: Date,
+    @Query('end') end: Date
+  ): Promise<{
+    timestamp: Date; // un único valor, no array
+    temp: number;
+  }[]> {
+    return this.sensorReadingsService.findIntervalV2(id,start,end);
+  }
+
   @Post('sensor/readings')
   insertMany(@Body() createReadingsDto: CreateSensorReadingDto[]): Promise<string> {
     return this.sensorReadingsService.createMany(createReadingsDto);

@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
   BaseEntity,
 } from 'typeorm';
-import { NurserySensor, LaboratorySensor, FarmacySensor } from '../sensors/sensor.entity';
+import { NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor } from '../sensors/sensor.entity';
 
 export abstract class SensorReading extends BaseEntity {
   @CreateDateColumn({ type: 'timestamp' })
@@ -40,4 +40,11 @@ export class FarmacySensorReading extends SensorReading {
   @ManyToOne(() => FarmacySensor)
   @JoinColumn({ name: 'sensor_id' })
   sensor: FarmacySensor;
+}
+
+@Entity({ name: 'historic', schema: 'sistemas', database: 'sensors' })
+export class SystemSensorReading extends SensorReading {
+  @ManyToOne(() => SystemSensor)
+  @JoinColumn({ name: 'sensor_id' })
+  sensor: SystemSensor;
 }

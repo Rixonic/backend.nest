@@ -55,6 +55,14 @@ export class NurseryController {
     return this.sensorReadingsService.findLast(id);
   }
 
+  @Get('/sensor/last/v2/:id')
+  findLastV2(@Param('id', ParseIntPipe) id: number): Promise<{
+    timestamp: Date; // un único valor, no array
+    temp: number;
+  }[]> {
+    return this.sensorReadingsService.findLastV2(id);
+  }  
+
   @Get('/sensor/interval/:id')
   findInterval(
     @Param('id', ParseIntPipe) id: number,
@@ -69,6 +77,17 @@ export class NurseryController {
     return this.sensorReadingsService.createMany(createReadingsDto);
   }
 
+  @Get('/sensor/interval/v2/:id')
+  findIntervalV2(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('start') start: Date,
+    @Query('end') end: Date
+  ): Promise<{
+    timestamp: Date; // un único valor, no array
+    temp: number;
+  }[]> {
+    return this.sensorReadingsService.findIntervalV2(id,start,end);
+  }
   //@Delete(':id')
   //remove(@Param('id') id: string): Promise<void> {
   //  return this.sensorsService.remove(id);

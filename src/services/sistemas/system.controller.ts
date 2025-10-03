@@ -13,12 +13,12 @@ import { CreateSensorReadingDto } from 'src/sensorReadings/dto/create-sensorRead
 import { CreateSensorDto } from 'src/sensors/dto/create-sensor.dto';
 import { ReadSensorReadingDto } from 'src/sensorReadings/dto/read-sensorReading.dto';
 import { Sensor } from 'src/sensors/sensor.entity';
-import { SensorService } from './farmacy.service';
-import { SensorReadingsService } from './farmacy.service';
+import { SensorService } from './system.service';
+import { SensorReadingsService } from './system.service';
 import { UpdateSensorDto } from 'src/sensors/dto/update-sensor.dto';
 
-@Controller('farmacia')
-export class FarmacyController {
+@Controller('sistema')
+export class SystemController {
   constructor(
     private readonly sensorsService: SensorService,
     private readonly sensorReadingsService: SensorReadingsService,
@@ -72,10 +72,6 @@ export class FarmacyController {
     return this.sensorReadingsService.findInterval(id,start,end);
   }
 
-  @Post('sensor/readings')
-  insertMany(@Body() createReadingsDto: CreateSensorReadingDto[]): Promise<string> {
-    return this.sensorReadingsService.createMany(createReadingsDto);
-  }
   @Get('/sensor/interval/v2/:id')
   findIntervalV2(
     @Param('id', ParseIntPipe) id: number,
@@ -87,6 +83,12 @@ export class FarmacyController {
   }[]> {
     return this.sensorReadingsService.findIntervalV2(id,start,end);
   }
+
+  @Post('sensor/readings')
+  insertMany(@Body() createReadingsDto: CreateSensorReadingDto[]): Promise<string> {
+    return this.sensorReadingsService.createMany(createReadingsDto);
+  }
+
   //@Delete(':id')
   //remove(@Param('id') id: string): Promise<void> {
   //  return this.sensorsService.remove(id);

@@ -191,4 +191,30 @@ export class SensorReadingsService {
 
     return formattedResult;
   }
+
+  async findIntervalV2(sensorId: number,  start: Date, end: Date ): Promise<{
+    timestamp: Date; // un único valor, no array
+    temp: number;
+  }[]> {
+    console.log("Start: ",start)
+    console.log("End: ",end)
+    const sensorReadings = await this.sensorReadingsRepository.find({
+      where: {
+        sensor_id: sensorId,
+        timestamp: Between(start, end),
+      },
+      order: {
+        timestamp: 'DESC',
+      },
+      //take: 30, 
+    })
+
+    return sensorReadings
+    .map(reading => ({
+      timestamp: new Date(reading.timestamp),
+      temp: Number(reading.temp), // Aseguramos que sea number
+      //sensor_id: reading.sensor_id
+    }))
+    .reverse();
+  }
 }

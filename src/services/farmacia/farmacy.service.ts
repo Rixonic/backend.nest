@@ -137,6 +137,36 @@ export class SensorReadingsService {
     return formattedResult;
   }
 
+  async findLastV2(sensorId: number): Promise<{
+    timestamp: Date; // un único valor, no array
+    temp: number;
+  }[]> {
+
+    const sensorReadings = await this.sensorReadingsRepository.find({
+      where: { sensor_id: sensorId },
+      order: {
+        timestamp: 'DESC', // Ordenamos por timestamp en orden descendente
+      },
+      take: 20, // Limitamos a las últimas 30 entradas
+    })
+
+    //const tempArray = sensorReadings.map(row => row.temp).reverse();;
+    //const timestampArray = sensorReadings.map(row => row.timestamp).reverse();
+
+    //const formattedResult = {
+    //  temp: tempArray,
+    //  timestamp: timestampArray
+    //};
+
+    return sensorReadings
+    .map(reading => ({
+      timestamp: new Date(reading.timestamp),
+      temp: Number(reading.temp), // Aseguramos que sea number
+      //sensor_id: reading.sensor_id
+    }))
+    .reverse();
+  }
+
   async findInterval(sensorId: number,  start: Date, end: Date ): Promise<ReadSensorReadingDto> {
     console.log("Start: ",start)
     console.log("End: ",end)
@@ -160,5 +190,31 @@ export class SensorReadingsService {
     };
 
     return formattedResult;
+  }
+
+  async findIntervalV2(sensorId: number,  start: Date, end: Date ): Promise<{
+    timestamp: Date; // un único valor, no array
+    temp: number;
+  }[]> {
+    console.log("Start: ",start)
+    console.log("End: ",end)
+    const sensorReadings = await this.sensorReadingsRepository.find({
+      where: {
+        sensor_id: sensorId,
+        timestamp: Between(start, end),
+      },
+      order: {
+        timestamp: 'DESC',
+      },
+      //take: 30, 
+    })
+
+    return sensorReadings
+    .map(reading => ({
+      timestamp: new Date(reading.timestamp),
+      temp: Number(reading.temp), // Aseguramos que sea number
+      //sensor_id: reading.sensor_id
+    }))
+    .reverse();
   }
 }
