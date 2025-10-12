@@ -89,7 +89,7 @@ export class TanqueReadingsService {
     return sensorReadings
       .map(reading => ({
         timestamp: new Date(reading.timestamp),
-        level: Number(reading.level), // Aseguramos que sea number
+        level: reading.level, // Aseguramos que sea number
         //sensor_id: reading.sensor_id
       }))
       .reverse();
@@ -136,7 +136,7 @@ export class TanqueReadingsService {
     return sensorReadings
       .map(reading => ({
         timestamp: new Date(reading.timestamp),
-        level: Number(reading.level), // Aseguramos que sea number
+        level: reading.level, // Aseguramos que sea number
         //sensor_id: reading.sensor_id
       }))
       .reverse();
@@ -228,7 +228,7 @@ export class CisternaReadingsService {
     return sensorReadings
       .map(reading => ({
         timestamp: new Date(reading.timestamp),
-        level: Number(reading.level), // Aseguramos que sea number
+        level:reading.level, // Aseguramos que sea number
         //sensor_id: reading.sensor_id
       }))
       .reverse();
@@ -277,7 +277,7 @@ export class CisternaReadingsService {
     return sensorReadings
       .map(reading => ({
         timestamp: new Date(reading.timestamp),
-        level: Number(reading.level), // Aseguramos que sea number
+        level: reading.level, // Aseguramos que sea number
         //sensor_id: reading.sensor_id
       }))
       .reverse();

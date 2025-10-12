@@ -161,7 +161,7 @@ export class SensorReadingsService {
     return sensorReadings
     .map(reading => ({
       timestamp: new Date(reading.timestamp),
-      temp: Number(reading.temp), // Aseguramos que sea number
+      temp: reading.temp, // Aseguramos que sea number
       //sensor_id: reading.sensor_id
     }))
     .reverse();
@@ -212,7 +212,7 @@ export class SensorReadingsService {
     return sensorReadings
     .map(reading => ({
       timestamp: new Date(reading.timestamp),
-      temp: Number(reading.temp), // Aseguramos que sea number
+      temp: reading.temp, // Aseguramos que sea number
       //sensor_id: reading.sensor_id
     }))
     .reverse();
