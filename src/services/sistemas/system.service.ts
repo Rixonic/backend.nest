@@ -196,8 +196,8 @@ export class SensorReadingsService {
     timestamp: Date; // un único valor, no array
     temp: number;
   }[]> {
-    console.log("Start: ",start)
-    console.log("End: ",end)
+    //console.log("Start: ",start)
+    //console.log("End: ",end)
     const sensorReadings = await this.sensorReadingsRepository.find({
       where: {
         sensor_id: sensorId,
