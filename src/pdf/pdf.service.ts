@@ -137,9 +137,6 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
 
       let html = fs.readFileSync(templatePath, 'utf-8');
 
-      console.log(JSON.stringify(formattedTimestamps))
-      console.log(JSON.stringify(temp))
-
       // Reemplazar los valores en la plantilla
       const replacements = {
         '{{codigo}}': codigo,
