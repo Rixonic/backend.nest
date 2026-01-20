@@ -4,15 +4,45 @@ import { PdfService } from './pdf.service';
 
 @Controller('pdf')
 export class PdfController {
-  constructor(private readonly pdfService: PdfService) {}
+  constructor(private readonly pdfService: PdfService) { }
+
+
+  @Post('farmacia/individual')
+  async generateFarmaciaTemperatureReport(
+    @Body() body: { sensor: any; startDate: Date; endDate: Date; setInterval?: boolean },
+    @Res() res: Response,
+  ) {
+    try {
+      const pdf = await this.pdfService.generateTemperatureReport(
+        body.sensor,
+        new Date(body.startDate),
+        new Date(body.endDate),
+        body.setInterval,
+        "FARMACIA"
+      );
+
+      const fileName = `${body.sensor.codigo}_${body.sensor.labId}(${body.sensor.month})(${body.sensor.year}).pdf`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('X-File-Name', fileName);
+      res.send(pdf);
+    } catch (error) {
+      console.error('Error generando el PDF de Farmacia:', error);
+      res.status(500).json({
+        message: 'Error al generar el PDF',
+        error: error.message,
+      });
+    }
+  }
 
   @Post('laboratorio/individual')
   async generateTemperatureReport(
-    @Body() body: { 
-      sensor: any; 
-      startDate: Date; 
-      endDate: Date; 
-      setInterval?: boolean 
+    @Body() body: {
+      sensor: any;
+      startDate: Date;
+      endDate: Date;
+      setInterval?: boolean
     },
     @Res() res: Response,
   ) {
@@ -26,7 +56,7 @@ export class PdfController {
       );
 
       const fileName = `${body.sensor.codigo}_${body.sensor.labId}(${body.sensor.month})(${body.sensor.year}).pdf`;
-      
+
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('X-File-Name', fileName);

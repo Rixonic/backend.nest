@@ -9,9 +9,9 @@ import { SensorReadingsService as FarmacyService } from '../services/farmacia/fa
 import * as archiver from 'archiver';
 
 const months = [
-    'ENERO', 'FEBRERO', 'MARZO', 'ABRIL',
-    'MAYO', 'JUNIO', 'JULIO', 'AGOSTO',
-    'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+  'ENERO', 'FEBRERO', 'MARZO', 'ABRIL',
+  'MAYO', 'JUNIO', 'JULIO', 'AGOSTO',
+  'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
 ];
 
 @Injectable()
@@ -29,7 +29,7 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     await this.initBrowser();
-}
+  }
 
   async onModuleDestroy() {
     if (this.browser) {
@@ -68,24 +68,24 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
   private async initBrowser() {
     try {
       if (this.browser) {
-        await this.browser.close().catch(() => {});
+        await this.browser.close().catch(() => { });
       }
-      
+
       this.browser = await puppeteer.launch({
         headless: true,
         args: [
-          '--no-sandbox', 
+          '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage', // ← Importante para servidores con poca RAM
         ]
       });
-      
+
       console.log('Browser initialized successfully');
     } catch (error) {
       console.error('Error initializing browser:', error);
       throw error;
     }
-}
+  }
 
 
   private async ensureBrowser() {
@@ -93,17 +93,17 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
       console.log('Browser disconnected, reinitializing...');
       await this.initBrowser();
     }
-}
+  }
 
   async generateTemperatureReport(sensor: any, startDate: Date, endDate: Date, setInterval: boolean = false, service: string): Promise<Buffer> {
     let page = null;
     await this.ensureBrowser(); // ← Agregar esto al inicio
 
-    
+
     try {
       page = await this.browser.newPage();
       const fechaHoy = format(new Date(), 'dd/MM/yyyy');
-      
+
       // Obtener datos del sensor usando el servicio interno
       const response = await this.getSensorData(sensor, startDate, endDate, service);
 
@@ -124,10 +124,21 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
 
       // Preparar datos para la plantilla
       const codigo = this.getSensorCode(sensor);
-      
+
+      let templatePath
+
       // Leer la plantilla
-      const templatePath = path.join(this.templatesPath, 'temperature.html');
+      if (service == "LABORATORIO") {
+        templatePath = path.join(this.templatesPath, 'temperature.html');
+      }
+      if (service == "FARMACIA") {
+        templatePath = path.join(this.templatesPath, 'temperatureFarmacia.html');
+      }
+
       let html = fs.readFileSync(templatePath, 'utf-8');
+
+      console.log(JSON.stringify(formattedTimestamps))
+      console.log(JSON.stringify(temp))
 
       // Reemplazar los valores en la plantilla
       const replacements = {
@@ -167,33 +178,33 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
       return Buffer.from(pdf);
     } finally {
       if (page) { // ← Solo cierra si page existe
-        await page.close().catch(err => 
+        await page.close().catch(err =>
           console.error('Error closing page:', err)
         );
       }
     }
-    
+
   }
 
   async generatePdf(templateName: string, data: Record<string, any>): Promise<Buffer> {
     let page = null; // ← Agregar esto
     await this.ensureBrowser(); // ← Agregar esto al inicio
 
-    
+
     try {
       page = await this.browser.newPage();
       // Leer la plantilla HTML
       const templatePath = path.join(this.templatesPath, `${templateName}.html`);
       let html = fs.readFileSync(templatePath, 'utf-8');
-      
+
       // Reemplazar los valores en la plantilla
       Object.entries(data).forEach(([key, value]) => {
         html = html.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
       });
-      
+
       // Establecer el contenido HTML
       await page.setContent(html);
-      
+
       // Generar el PDF
       const pdf = await page.pdf({
         format: 'A4',
@@ -203,7 +214,7 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
       return Buffer.from(pdf);
     } finally {
       if (page) { // ← Agregar esta verificación
-        await page.close().catch(err => 
+        await page.close().catch(err =>
           console.error('Error closing page:', err)
         );
       }
@@ -211,7 +222,7 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
   }
 
   async generateMultipleTemperatureReports(sensors: any[], startDate: Date, endDate: Date, service: string): Promise<Buffer> {
-   
+
     const tempDate = format(new Date(), 'ddMMyyyyHHmmss');
     const outputDir = path.join(process.cwd(), 'temp_pdfs_' + tempDate);
     const zipPath = path.join(process.cwd(), 'sensors_pdfs.zip');
