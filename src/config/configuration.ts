@@ -38,7 +38,10 @@ export interface AppConfig {
     tempModbusPoll: number;
     monitorTick: number;
     readingsPersist: number;
+    /** Muestreo de nivel de agua por Modbus + emisión WebSocket (ms). */
     waterPoll: number;
+    /** Persistencia de nivel de agua en `agua.tanque`/`agua.cisterna` (ms). */
+    waterPersist: number;
     /** Muestreo de presión de oxígeno por Modbus (ms). */
     oxygenPoll: number;
     /** Persistencia de presión de oxígeno en `oxigeno.historic` (ms). */
@@ -115,7 +118,8 @@ export default (): AppConfig => ({
     tempModbusPoll: int(process.env.INT_TEMP_MODBUS_POLL, 1000),
     monitorTick: int(process.env.INT_MONITOR_TICK, 1000),
     readingsPersist: int(process.env.INT_READINGS_PERSIST, 300_000),
-    waterPoll: int(process.env.INT_WATER_POLL, 60_000),
+    waterPoll: int(process.env.INT_WATER_POLL, 1000),
+    waterPersist: int(process.env.INT_WATER_PERSIST, 60_000),
     oxygenPoll: int(process.env.INT_OXYGEN_POLL, 1000),
     oxygenPersist: int(process.env.INT_OXYGEN_PERSIST, 300_000),
     sensorReload: int(process.env.INT_SENSOR_RELOAD, 60_000),

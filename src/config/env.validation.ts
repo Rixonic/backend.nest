@@ -20,6 +20,7 @@ export const envValidationSchema = Joi.object({
   INT_MONITOR_TICK: Joi.number().positive().optional(),
   INT_READINGS_PERSIST: Joi.number().positive().optional(),
   INT_WATER_POLL: Joi.number().positive().optional(),
+  INT_WATER_PERSIST: Joi.number().positive().optional(),
   INT_OXYGEN_POLL: Joi.number().positive().optional(),
   INT_OXYGEN_PERSIST: Joi.number().positive().optional(),
   INT_MQTT_DISCONNECT_TICKS: Joi.number().positive().optional(),

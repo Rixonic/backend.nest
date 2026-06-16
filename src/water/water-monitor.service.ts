@@ -28,8 +28,10 @@ const LOW_THRESHOLD = 0.5;
 const RESET_THRESHOLD = 0.55;
 
 /**
- * Monitor de nivel de tanque y cisterna. Lee el nivel por Modbus
- * (`level = raw / 10^decimales`), persiste la lectura y alerta por
+ * Monitor de nivel de tanque y cisterna. Muestrea el nivel por Modbus
+ * (`level = raw / 10^decimales`) y lo difunde por WebSocket en cada `waterPoll`,
+ * y persiste el último nivel leído cada `waterPersist` (lectura/emisión y
+ * persistencia desacopladas, como `OxygenMonitorService`). Alerta por
  * Telegram/WhatsApp en el flanco de bajo nivel (< 0.5), reseteando al
  * recuperarse (>= 0.55). Reemplaza los nodos "function 3/4" de Node-RED.
  */
@@ -71,9 +73,13 @@ export class WaterMonitorService implements OnApplicationBootstrap {
       },
     ];
 
-    const interval = this.config.get('intervals', { infer: true }).waterPoll;
-    const handle = setInterval(() => this.pollAll(), interval);
-    this.scheduler.addInterval('water-poll', handle);
+    const intervals = this.config.get('intervals', { infer: true });
+    this.addInterval('water-poll', intervals.waterPoll, () =>
+      void this.pollAll(),
+    );
+    this.addInterval('water-persist', intervals.waterPersist, () =>
+      void this.persistAll(),
+    );
     this.logger.log('Monitor de agua (tanque + cisterna) iniciado');
   }
 
@@ -115,13 +121,25 @@ export class WaterMonitorService implements OnApplicationBootstrap {
     }
 
     this.gateway.broadcast('water', { tank: tank.name, level });
+  }
 
-    try {
-      await tank.persist(level);
-    } catch (err) {
-      this.logger.error(
-        `Error al persistir nivel de ${tank.name}: ${(err as Error).message}`,
-      );
+  /** Persiste el último nivel leído de cada tanque (corre en `waterPersist`). */
+  private async persistAll(): Promise<void> {
+    for (const tank of this.tanks) {
+      const level = this.lastLevel.get(tank.name);
+      if (level === undefined) continue;
+      try {
+        await tank.persist(level);
+      } catch (err) {
+        this.logger.error(
+          `Error al persistir nivel de ${tank.name}: ${(err as Error).message}`,
+        );
+      }
     }
+  }
+
+  private addInterval(name: string, ms: number, fn: () => void): void {
+    const handle = setInterval(fn, ms);
+    this.scheduler.addInterval(name, handle);
   }
 }
