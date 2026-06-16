@@ -7,12 +7,14 @@ import { SystemSensorReading, SensorReading } from 'src/sensorReadings/sensorRea
 import { ReadSensorReadingDto } from 'src/sensorReadings/dto/read-sensorReading.dto';
 import { CreateSensorReadingDto } from 'src/sensorReadings/dto/create-sensorReading.dto';
 import { UpdateSensorDto } from 'src/sensors/dto/update-sensor.dto';
+import { SensorEventBus } from 'src/events/sensor-events.service';
 
 @Injectable()
 export class SensorService {
   constructor(
     @InjectRepository(SystemSensor, 'sensors')
     private readonly sensorsRepository: Repository<SystemSensor>,
+    private readonly events: SensorEventBus,
   ) { }
 
   create(createSensorDto: CreateSensorDto): Promise<Sensor> {
@@ -65,10 +67,11 @@ export class SensorService {
     }
 
     await this.sensorsRepository.update(id, updatedFields);
+    this.events.emitConfigChanged();
 
     return this.sensorsRepository.findOne({ where: { id } });
   }
-  
+
 }
 
 

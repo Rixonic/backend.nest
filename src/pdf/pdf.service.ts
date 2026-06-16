@@ -95,7 +95,7 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async generateTemperatureReport(sensor: any, startDate: Date, endDate: Date, setInterval: boolean = false, service: string): Promise<Buffer> {
+  async generateTemperatureReport(sensor: any, startDate: Date, endDate: Date, setInterval = false, service: string): Promise<Buffer> {
     let page = null;
     await this.ensureBrowser(); // ← Agregar esto al inicio
 

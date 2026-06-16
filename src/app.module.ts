@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import configuration, { AppConfig } from './config/configuration';
+import { envValidationSchema } from './config/env.validation';
 import { NurseryModule } from './services/enfermeria/nursery.module';
 import { LaboratoryModule } from './services/laboratorio/laboratory.module';
 import { FarmacyModule } from './services/farmacia/farmacy.module';
@@ -11,39 +15,66 @@ import { TankSensorReading, CisternaSensorReading } from './agua/agua.entity';
 import { Alarms } from './plc/plc.entity';
 import { WaterModule } from './services/agua/agua.module';
 import { SystemModule } from './services/sistemas/system.module';
+import { EventsModule } from './events/events.module';
+import { AcquisitionModule } from './acquisition/acquisition.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ElectricalModule } from './electrical/electrical.module';
+import { WaterMonitorModule } from './water/water.module';
+import { MonitorModule } from './monitor/monitor.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+      validationSchema: envValidationSchema,
+    }),
+    ScheduleModule.forRoot(),
     // Conexión a PostgreSQL para los sensores
-    TypeOrmModule.forRoot({
+    TypeOrmModule.forRootAsync({
       name: 'sensors',
-      type: 'postgres',
-      host: '192.168.90.219',
-      port: 5432,
-      username: 'postgres',
-      password: 'toor',
-      database: 'dbSensors',
-      entities: [NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading, TankSensorReading, CisternaSensorReading],
-      autoLoadEntities: false,
-      synchronize: false,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<AppConfig, true>) => {
+        const db = config.get('database', { infer: true }).sensors;
+        return {
+          name: 'sensors',
+          type: 'postgres',
+          host: db.host,
+          port: db.port,
+          username: db.username,
+          password: db.password,
+          database: db.database,
+          entities: [NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading, TankSensorReading, CisternaSensorReading],
+          autoLoadEntities: false,
+          synchronize: false,
+        };
+      },
     }),
     // Conexión a SQL Server para las alarmas del PLC
-    TypeOrmModule.forRoot({
+    TypeOrmModule.forRootAsync({
       name: 'plc',
-      type: 'mssql',
-      host: '192.168.90.200\\SQLEXPRESS',
-      port: 1433,
-      username: 'guest',
-      password: '1234',
-      database: 'E3_HSJD',
-      schema: 'dbo',
-      entities: [Alarms],
-      autoLoadEntities: false,
-      options: {
-        encrypt: false,
-        trustServerCertificate: true,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<AppConfig, true>) => {
+        const db = config.get('database', { infer: true }).plc;
+        return {
+          name: 'plc',
+          type: 'mssql',
+          host: db.host,
+          port: db.port,
+          username: db.username,
+          password: db.password,
+          database: db.database,
+          schema: db.schema,
+          entities: [Alarms],
+          autoLoadEntities: false,
+          options: {
+            encrypt: false,
+            trustServerCertificate: true,
+          },
+          synchronize: false,
+        };
       },
-      synchronize: false,
     }),
     PLCModule,
     NurseryModule,
@@ -51,7 +82,15 @@ import { SystemModule } from './services/sistemas/system.module';
     SystemModule,
     LaboratoryModule,
     PdfModule,
-    WaterModule
+    WaterModule,
+    // Integración de adquisición y alertas (ex Node-RED)
+    EventsModule,
+    AcquisitionModule,
+    MonitoringModule,
+    NotificationsModule,
+    ElectricalModule,
+    WaterMonitorModule,
+    MonitorModule,
   ],
 })
 export class AppModule { }
