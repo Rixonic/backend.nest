@@ -20,6 +20,8 @@ export const envValidationSchema = Joi.object({
   INT_MONITOR_TICK: Joi.number().positive().optional(),
   INT_READINGS_PERSIST: Joi.number().positive().optional(),
   INT_WATER_POLL: Joi.number().positive().optional(),
+  INT_OXYGEN_POLL: Joi.number().positive().optional(),
+  INT_OXYGEN_PERSIST: Joi.number().positive().optional(),
   INT_MQTT_DISCONNECT_TICKS: Joi.number().positive().optional(),
   ESC_RESEND_INTERVAL: Joi.number().positive().optional(),
   ESC_ACK_EXTEND_INTERVAL: Joi.number().positive().optional(),
@@ -35,6 +37,8 @@ export const envValidationSchema = Joi.object({
   TANQUE_PORT: Joi.number().port().optional(),
   CISTERNA_HOST: Joi.string().optional(),
   CISTERNA_PORT: Joi.number().port().optional(),
+  OXIGENO_HOST: Joi.string().optional(),
+  OXIGENO_PORT: Joi.number().port().optional(),
 
   // MQTT
   MQTT_URL: Joi.string().optional(),

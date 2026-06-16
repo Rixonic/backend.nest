@@ -39,6 +39,10 @@ export interface AppConfig {
     monitorTick: number;
     readingsPersist: number;
     waterPoll: number;
+    /** Muestreo de presión de oxígeno por Modbus (ms). */
+    oxygenPoll: number;
+    /** Persistencia de presión de oxígeno en `oxigeno.historic` (ms). */
+    oxygenPersist: number;
     /** Recarga de la config de sensores (max/min/time/offset) desde la BD. */
     sensorReload: number;
     /** Ticks de `monitorTick` sin lectura MQTT antes de marcar el sensor como desconectado. */
@@ -56,6 +60,7 @@ export interface AppConfig {
     castelar: ModbusDeviceConfig;
     tanque: ModbusDeviceConfig;
     cisterna: ModbusDeviceConfig;
+    oxigeno: ModbusDeviceConfig;
   };
   mqtt: {
     url: string;
@@ -111,6 +116,8 @@ export default (): AppConfig => ({
     monitorTick: int(process.env.INT_MONITOR_TICK, 1000),
     readingsPersist: int(process.env.INT_READINGS_PERSIST, 300_000),
     waterPoll: int(process.env.INT_WATER_POLL, 60_000),
+    oxygenPoll: int(process.env.INT_OXYGEN_POLL, 1000),
+    oxygenPersist: int(process.env.INT_OXYGEN_PERSIST, 300_000),
     sensorReload: int(process.env.INT_SENSOR_RELOAD, 60_000),
     mqttDisconnectTicks: int(process.env.INT_MQTT_DISCONNECT_TICKS, 10),
   },
@@ -148,6 +155,12 @@ export default (): AppConfig => ({
       host: str(process.env.CISTERNA_HOST, '192.168.90.249'),
       port: int(process.env.CISTERNA_PORT, 8899),
       unitId: int(process.env.CISTERNA_UNIT, 1),
+    },
+    oxigeno: {
+      name: 'oxigeno',
+      host: str(process.env.OXIGENO_HOST, '192.168.100.32'),
+      port: int(process.env.OXIGENO_PORT, 502),
+      unitId: int(process.env.OXIGENO_UNIT, 1),
     },
   },
   mqtt: {

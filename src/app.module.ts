@@ -12,6 +12,7 @@ import { PdfModule } from './pdf/pdf.module';
 import { NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor } from './sensors/sensor.entity';
 import { NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading } from './sensorReadings/sensorReading.entity';
 import { TankSensorReading, CisternaSensorReading } from './agua/agua.entity';
+import { OxygenSensor, OxygenReading } from './oxigeno/oxigeno.entity';
 import { Alarms } from './plc/plc.entity';
 import { WaterModule } from './services/agua/agua.module';
 import { SystemModule } from './services/sistemas/system.module';
@@ -21,6 +22,8 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ElectricalModule } from './electrical/electrical.module';
 import { WaterMonitorModule } from './water/water.module';
+import { OxygenModule } from './services/oxigeno/oxigeno.module';
+import { OxygenMonitorModule } from './oxygen/oxygen.module';
 import { MonitorModule } from './monitor/monitor.module';
 
 @Module({
@@ -45,7 +48,7 @@ import { MonitorModule } from './monitor/monitor.module';
           username: db.username,
           password: db.password,
           database: db.database,
-          entities: [NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading, TankSensorReading, CisternaSensorReading],
+          entities: [NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading, TankSensorReading, CisternaSensorReading, OxygenSensor, OxygenReading],
           autoLoadEntities: false,
           synchronize: false,
         };
@@ -83,6 +86,7 @@ import { MonitorModule } from './monitor/monitor.module';
     LaboratoryModule,
     PdfModule,
     WaterModule,
+    OxygenModule,
     // Integración de adquisición y alertas (ex Node-RED)
     EventsModule,
     AcquisitionModule,
@@ -90,6 +94,7 @@ import { MonitorModule } from './monitor/monitor.module';
     NotificationsModule,
     ElectricalModule,
     WaterMonitorModule,
+    OxygenMonitorModule,
     MonitorModule,
   ],
 })

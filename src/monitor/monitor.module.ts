@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MonitoringModule } from '../monitoring/monitoring.module';
 import { ElectricalModule } from '../electrical/electrical.module';
 import { WaterMonitorModule } from '../water/water.module';
+import { OxygenMonitorModule } from '../oxygen/oxygen.module';
 import { MonitorController } from './monitor.controller';
 
 /**
@@ -9,7 +10,7 @@ import { MonitorController } from './monitor.controller';
  * transferencia, agua) para servir su estado actual en una sola respuesta.
  */
 @Module({
-  imports: [MonitoringModule, ElectricalModule, WaterMonitorModule],
+  imports: [MonitoringModule, ElectricalModule, WaterMonitorModule, OxygenMonitorModule],
   controllers: [MonitorController],
 })
 export class MonitorModule {}

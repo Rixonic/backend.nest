@@ -12,6 +12,7 @@ import { Server } from 'socket.io';
  *  - `temperature`: snapshot de sensores de temperatura por departamento
  *  - `transfer`: estado decodificado de los PLC de transferencia
  *  - `water`: niveles de tanque/cisterna
+ *  - `pressure`: presiones de oxígeno (ambos sensores juntos)
  *
  * Nota: usa socket.io; el frontend debe conectarse con un cliente soc.io.
  */
@@ -24,7 +25,10 @@ export class AlertGateway implements OnGatewayInit {
     this.logger.log('Gateway WebSocket inicializado');
   }
 
-  broadcast(event: 'temperature' | 'transfer' | 'water', payload: unknown): void {
+  broadcast(
+    event: 'temperature' | 'transfer' | 'water' | 'pressure',
+    payload: unknown,
+  ): void {
     this.server?.emit(event, payload);
   }
 }

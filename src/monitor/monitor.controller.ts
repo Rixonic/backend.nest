@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { TemperatureMonitorService } from '../monitoring/temperature-monitor.service';
 import { TransferMonitorService } from '../electrical/transfer-monitor.service';
 import { WaterMonitorService } from '../water/water-monitor.service';
+import { OxygenMonitorService } from '../oxygen/oxygen-monitor.service';
 
 /**
  * Expone el estado en vivo actual (en memoria) de todos los dominios en una sola
@@ -15,6 +16,7 @@ export class MonitorController {
     private readonly temperature: TemperatureMonitorService,
     private readonly transfer: TransferMonitorService,
     private readonly water: WaterMonitorService,
+    private readonly oxygen: OxygenMonitorService,
   ) {}
 
   @Get('snapshot')
@@ -23,6 +25,7 @@ export class MonitorController {
       temperature: this.temperature.getSnapshot(),
       transfer: this.transfer.getSnapshot(),
       water: this.water.getSnapshot(),
+      oxygen: this.oxygen.getSnapshot(),
     };
   }
 }
