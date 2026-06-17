@@ -76,12 +76,10 @@ export const RECIPIENTS: Record<string, DepartmentAlertConfig> = {
   farmacia: {
     groups: [
       [
-        { chatId: '5083746157', workingHours: [0, 24], admin: false },
-        { chatId: '5234325131', workingHours: [0, 24], admin: true },
+        { chatId: '5083746157', workingHours: [0, 24], admin: false }
       ],
       [
-        { chatId: '5083746157', workingHours: [0, 24], admin: true },
-        { chatId: '5234325131', workingHours: [0, 24], admin: true },
+        { chatId: '5083746157', workingHours: [0, 24], admin: true }
       ],
     ],
     emails: [
