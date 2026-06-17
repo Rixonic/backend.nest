@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   OnApplicationBootstrap,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
@@ -35,12 +36,29 @@ interface DepartmentBinding {
  *
  * El estado de alerta es consumido por `EscalationService` para notificar.
  */
+/** Cadencia del log de métricas Modbus del laboratorio (ms). */
+const METRICS_LOG_MS = 60_000;
+
 @Injectable()
-export class TemperatureMonitorService implements OnApplicationBootstrap {
+export class TemperatureMonitorService
+  implements OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly logger = new Logger(TemperatureMonitorService.name);
   private readonly states = new Map<Department, Map<string, SensorState>>();
   private readonly bindings: Record<Department, DepartmentBinding>;
   private loadedOnce = false;
+
+  /** Controla el loop de lectura Modbus (false en shutdown). */
+  private running = false;
+  /** Dirección base y cantidad del bloque de registros del laboratorio. */
+  private labBase = 0;
+  private labQuantity = 0;
+  /** Acumuladores de duración de ciclo (se reinician en cada log de métricas). */
+  private cycleCount = 0;
+  private cycleMsTotal = 0;
+  private cycleMsMax = 0;
+  /** Último snapshot de métricas del PLC para calcular deltas por minuto. */
+  private lastMetrics = { ops: 0, errors: 0, timeouts: 0, reconnects: 0 };
 
   constructor(
     private readonly config: ConfigService<AppConfig, true>,
@@ -67,14 +85,20 @@ export class TemperatureMonitorService implements OnApplicationBootstrap {
 
     await this.reloadSensors();
 
+    // Rango del bloque de registros del laboratorio: leemos de la dirección más
+    // baja a la más alta en UNA sola transacción Modbus por ciclo (como hacía
+    // Node-RED), en vez de una lectura por sensor.
+    const labAddrs = Object.values(LAB_MODBUS_ADDRESSES);
+    if (labAddrs.length > 0) {
+      this.labBase = Math.min(...labAddrs);
+      this.labQuantity = Math.max(...labAddrs) + 2 - this.labBase;
+    }
+
     this.mqtt.onReading((r) => this.applyMqttReading(r));
     // Recarga inmediata cuando se edita un sensor por la API (PUT update).
     this.events.onConfigChanged(() => void this.reloadSensors());
 
     const intervals = this.config.get('intervals', { infer: true });
-    this.addInterval('temp-modbus-poll', intervals.tempModbusPoll, () =>
-      this.pollLabModbus(),
-    );
     this.addInterval('temp-monitor-tick', intervals.monitorTick, () =>
       this.evaluate(),
     );
@@ -86,7 +110,21 @@ export class TemperatureMonitorService implements OnApplicationBootstrap {
     this.addInterval('temp-config-reload', intervals.sensorReload, () => {
       void this.reloadSensors();
     });
+    this.addInterval('temp-modbus-metrics', METRICS_LOG_MS, () =>
+      this.logMetrics(),
+    );
+
+    // Lectura Modbus del laboratorio: loop secuencial (nunca solapa ciclos) con
+    // backoff ante error, en lugar de setInterval (que podría apilar lecturas si
+    // el PLC tarda). Reemplaza al ex `temp-modbus-poll`.
+    this.running = true;
+    void this.runLabModbusLoop();
+
     this.logger.log('Monitor de temperatura iniciado');
+  }
+
+  onModuleDestroy(): void {
+    this.running = false;
   }
 
   /** Estados de un departamento (consumido por la capa de notificaciones). */
@@ -154,23 +192,92 @@ export class TemperatureMonitorService implements OnApplicationBootstrap {
     }).mqttDisconnectTicks;
   }
 
+  /**
+   * Loop de lectura del PLC de temperaturas (AC500). Secuencial y sin solape:
+   * lee → mide → espera. Ante un ciclo fallido espera `tempModbusBackoff` para
+   * no generar ráfagas de reconexión contra el PLC.
+   */
+  private async runLabModbusLoop(): Promise<void> {
+    while (this.running) {
+      const intervals = this.config.get('intervals', { infer: true });
+      const t0 = Date.now();
+      let ok = true;
+      try {
+        await this.pollLabModbus();
+      } catch (err) {
+        ok = false;
+        this.logger.debug(`Ciclo Modbus lab fallido: ${(err as Error).message}`);
+      }
+      const elapsed = Date.now() - t0;
+      this.cycleCount += 1;
+      this.cycleMsTotal += elapsed;
+      if (elapsed > this.cycleMsMax) this.cycleMsMax = elapsed;
+
+      await this.sleep(ok ? intervals.tempModbusPoll : intervals.tempModbusBackoff);
+    }
+  }
+
+  /**
+   * Lee TODO el bloque de registros del laboratorio en una sola transacción y
+   * reparte los pares (palabra alta/baja) a cada sensor. Lanza si la lectura
+   * falla, para que el loop aplique backoff.
+   */
   private async pollLabModbus(): Promise<void> {
     const map = this.states.get('laboratorio');
-    if (!map) return;
+    if (!map || this.labQuantity === 0) return;
+
+    let block: number[];
+    try {
+      block = await this.modbus.readHolding('temp', this.labBase, this.labQuantity);
+    } catch (err) {
+      // Sin lectura: marcamos los sensores del lab como desconectados y
+      // propagamos para que el loop espere (backoff).
+      for (const state of map.values()) {
+        if (LAB_MODBUS_ADDRESSES[state.sensorId] !== undefined) state.temp = null;
+      }
+      throw err;
+    }
+
     for (const state of map.values()) {
       const addr = LAB_MODBUS_ADDRESSES[state.sensorId];
       if (addr === undefined) continue;
-      try {
-        const regs = await this.modbus.readHolding('temp', addr, 2);
-        const value = registersToFloat(regs) - state.offset;
-        state.temp =
-          value > 1000 || value < -1000
-            ? null
-            : Number(value.toFixed(2));
-      } catch {
+      const i = addr - this.labBase;
+      const hi = block[i];
+      const lo = block[i + 1];
+      if (hi === undefined || lo === undefined) {
         state.temp = null;
+        continue;
       }
+      const value = registersToFloat([hi, lo]) - state.offset;
+      state.temp = value > 1000 || value < -1000 ? null : Number(value.toFixed(2));
     }
+  }
+
+  /** Loguea duración de ciclo y ops/min contra el PLC (corre cada `METRICS_LOG_MS`). */
+  private logMetrics(): void {
+    const m = this.modbus.getMetrics('temp') ?? this.lastMetrics;
+    const d = {
+      ops: m.ops - this.lastMetrics.ops,
+      errors: m.errors - this.lastMetrics.errors,
+      timeouts: m.timeouts - this.lastMetrics.timeouts,
+      reconnects: m.reconnects - this.lastMetrics.reconnects,
+    };
+    this.lastMetrics = { ...m };
+    const avg = this.cycleCount
+      ? Math.round(this.cycleMsTotal / this.cycleCount)
+      : 0;
+    this.logger.log(
+      `Modbus lab (temp): ${this.cycleCount} ciclos, ciclo avg ${avg}ms / max ` +
+        `${this.cycleMsMax}ms; PLC: ${d.ops} ops/min, ${d.errors} errores, ` +
+        `${d.timeouts} timeouts, ${d.reconnects} reconexiones`,
+    );
+    this.cycleCount = 0;
+    this.cycleMsTotal = 0;
+    this.cycleMsMax = 0;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /** Evalúa umbral + debounce para todos los sensores. Corre cada `monitorTick`. */

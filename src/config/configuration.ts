@@ -36,6 +36,8 @@ export interface AppConfig {
   intervals: {
     plcTransferPoll: number;
     tempModbusPoll: number;
+    /** Espera tras un ciclo de lectura Modbus de laboratorio fallido (backoff, ms). */
+    tempModbusBackoff: number;
     monitorTick: number;
     readingsPersist: number;
     /** Muestreo de nivel de agua por Modbus + emisión WebSocket (ms). */
@@ -115,7 +117,10 @@ export interface AppConfig {
 export default (): AppConfig => ({
   intervals: {
     plcTransferPoll: int(process.env.INT_PLC_TRANSFER_POLL, 2000),
-    tempModbusPoll: int(process.env.INT_TEMP_MODBUS_POLL, 1000),
+    // Arranque conservador: 2000 ms para probar; bajar a 1000 ms si el PLC queda
+    // estable. La lectura es en un solo bloque, así que la carga ya es mínima.
+    tempModbusPoll: int(process.env.INT_TEMP_MODBUS_POLL, 2000),
+    tempModbusBackoff: int(process.env.INT_TEMP_MODBUS_BACKOFF, 5000),
     monitorTick: int(process.env.INT_MONITOR_TICK, 1000),
     readingsPersist: int(process.env.INT_READINGS_PERSIST, 300_000),
     waterPoll: int(process.env.INT_WATER_POLL, 1000),

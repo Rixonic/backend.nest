@@ -17,6 +17,7 @@ export const envValidationSchema = Joi.object({
   // Intervalos (ms)
   INT_PLC_TRANSFER_POLL: Joi.number().positive().optional(),
   INT_TEMP_MODBUS_POLL: Joi.number().positive().optional(),
+  INT_TEMP_MODBUS_BACKOFF: Joi.number().positive().optional(),
   INT_MONITOR_TICK: Joi.number().positive().optional(),
   INT_READINGS_PERSIST: Joi.number().positive().optional(),
   INT_WATER_POLL: Joi.number().positive().optional(),

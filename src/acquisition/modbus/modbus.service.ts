@@ -10,6 +10,18 @@ import { AppConfig, ModbusDeviceConfig } from '../../config/configuration';
 
 type RegisterType = 'holding' | 'input';
 
+/** Contadores acumulados por dispositivo (para diagnóstico de carga al PLC). */
+export interface DeviceMetrics {
+  /** Transacciones Modbus intentadas. */
+  ops: number;
+  /** Lecturas que terminaron en error. */
+  errors: number;
+  /** Subconjunto de `errors` que fueron timeouts. */
+  timeouts: number;
+  /** Reconexiones del socket TCP (no cuenta la primera conexión). */
+  reconnects: number;
+}
+
 interface Device {
   cfg: ModbusDeviceConfig;
   client: ModbusRTU;
@@ -18,6 +30,17 @@ interface Device {
   connecting: boolean;
   /** True una vez que el dispositivo conectó por primera vez (evita logs por reconexión). */
   everConnected: boolean;
+  metrics: DeviceMetrics;
+}
+
+/** Heurística para distinguir un timeout de otros errores de comunicación. */
+function isTimeoutError(err: unknown): boolean {
+  const e = err as { name?: string; errno?: string; message?: string };
+  return (
+    e?.name === 'TransactionTimedOutError' ||
+    e?.errno === 'ETIMEDOUT' ||
+    /timed out/i.test(e?.message ?? '')
+  );
 }
 
 /**
@@ -43,6 +66,7 @@ export class ModbusService implements OnModuleInit, OnModuleDestroy {
         queue: Promise.resolve(),
         connecting: false,
         everConnected: false,
+        metrics: { ops: 0, errors: 0, timeouts: 0, reconnects: 0 },
       });
     }
     this.logger.log(
@@ -74,6 +98,12 @@ export class ModbusService implements OnModuleInit, OnModuleDestroy {
     return this.enqueue(deviceName, 'input', address, quantity);
   }
 
+  /** Snapshot de los contadores acumulados de un dispositivo (para métricas). */
+  getMetrics(deviceName: string): DeviceMetrics | undefined {
+    const device = this.devices.get(deviceName);
+    return device ? { ...device.metrics } : undefined;
+  }
+
   private enqueue(
     deviceName: string,
     type: RegisterType,
@@ -102,6 +132,7 @@ export class ModbusService implements OnModuleInit, OnModuleDestroy {
   ): Promise<number[]> {
     await this.ensureConnected(device);
     device.client.setID(device.cfg.unitId);
+    device.metrics.ops += 1;
     try {
       const res =
         type === 'holding'
@@ -109,6 +140,8 @@ export class ModbusService implements OnModuleInit, OnModuleDestroy {
           : await device.client.readInputRegisters(address, quantity);
       return res.data;
     } catch (err) {
+      device.metrics.errors += 1;
+      if (isTimeoutError(err)) device.metrics.timeouts += 1;
       // Forzamos reconexión en el próximo intento.
       await this.closeQuietly(device);
       throw err;
@@ -122,10 +155,13 @@ export class ModbusService implements OnModuleInit, OnModuleDestroy {
     await device.client.connectTCP(host, { port });
     // Solo se loguea la primera conexión: algunos gateways Modbus cierran el
     // socket tras cada transacción, lo que reconectaría (y loguearía) en cada
-    // poll. Las reconexiones posteriores son normales y silenciosas.
+    // poll. Las reconexiones posteriores son normales y silenciosas (pero se
+    // cuentan en las métricas).
     if (!device.everConnected) {
       device.everConnected = true;
       this.logger.debug(`Conectado a ${device.cfg.name} (${host}:${port})`);
+    } else {
+      device.metrics.reconnects += 1;
     }
   }
 
