@@ -31,3 +31,21 @@ export const LAB_MODBUS_ADDRESSES: Record<string, number> = {
   A_5_103: 44,
   A_5_104: 46,
 };
+
+/**
+ * Puente Modbus→otro departamento: sensores cableados al MISMO PLC de
+ * temperaturas pero cuyo estado vive en otro departamento. Hoy: el sensor de
+ * farmacia "FCIA QX 1" (`ESP-f0f0f0`) está en la dirección 38 del PLC (el hueco
+ * que deja el mapa del laboratorio), pero pertenece a farmacia.
+ *
+ * Su valor se inyecta en el estado del departamento por el mismo camino que las
+ * lecturas MQTT, así cuando farmacia migre a un ESP real publicando `ESP-f0f0f0`
+ * alcanza con borrar la entrada de acá: el `sensorId` ya coincide y la
+ * suscripción MQTT toma el mismo estado sin más cambios.
+ */
+export const TEMP_MODBUS_BRIDGE: {
+  address: number;
+  /** Departamento destino (de los que reciben lecturas por el camino MQTT). */
+  source: 'farmacia' | 'sistemas';
+  sensorId: string;
+}[] = [{ address: 38, source: 'farmacia', sensorId: 'ESP-f0f0f0' }];

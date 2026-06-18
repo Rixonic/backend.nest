@@ -10,7 +10,7 @@ import { AppConfig } from '../config/configuration';
 import { ModbusService } from '../acquisition/modbus/modbus.service';
 import { MqttService, MqttReading } from '../acquisition/mqtt/mqtt.service';
 import { registersToFloat } from '../acquisition/modbus/modbus.util';
-import { LAB_MODBUS_ADDRESSES } from './lab-modbus.map';
+import { LAB_MODBUS_ADDRESSES, TEMP_MODBUS_BRIDGE } from './lab-modbus.map';
 import { Department, SensorState } from './sensor-state';
 import { Sensor } from '../sensors/sensor.entity';
 import { SensorEventBus } from '../events/sensor-events.service';
@@ -87,8 +87,12 @@ export class TemperatureMonitorService
 
     // Rango del bloque de registros del laboratorio: leemos de la dirección más
     // baja a la más alta en UNA sola transacción Modbus por ciclo (como hacía
-    // Node-RED), en vez de una lectura por sensor.
-    const labAddrs = Object.values(LAB_MODBUS_ADDRESSES);
+    // Node-RED), en vez de una lectura por sensor. Incluye también las
+    // direcciones del puente (p.ej. farmacia en 38) para que el bloque las cubra.
+    const labAddrs = [
+      ...Object.values(LAB_MODBUS_ADDRESSES),
+      ...TEMP_MODBUS_BRIDGE.map((b) => b.address),
+    ];
     if (labAddrs.length > 0) {
       this.labBase = Math.min(...labAddrs);
       this.labQuantity = Math.max(...labAddrs) + 2 - this.labBase;
@@ -250,6 +254,26 @@ export class TemperatureMonitorService
       }
       const value = registersToFloat([hi, lo]) - state.offset;
       state.temp = value > 1000 || value < -1000 ? null : Number(value.toFixed(2));
+    }
+
+    // Puente Modbus→otro departamento (hoy farmacia ESP-f0f0f0 en addr 38): el
+    // registro ya viene en el bloque; lo inyectamos por el mismo camino que una
+    // lectura MQTT, así el día que migre a un ESP real solo hay que borrar la
+    // entrada del puente. Si el departamento no tiene ese sensorId, se ignora.
+    for (const bridge of TEMP_MODBUS_BRIDGE) {
+      const j = bridge.address - this.labBase;
+      const bhi = block[j];
+      const blo = block[j + 1];
+      if (bhi === undefined || blo === undefined) continue;
+      const offset =
+        this.states.get(bridge.source)?.get(bridge.sensorId)?.offset ?? 0;
+      const value = registersToFloat([bhi, blo]) - offset;
+      const temp = value > 1000 || value < -1000 ? null : Number(value.toFixed(2));
+      this.applyMqttReading({
+        source: bridge.source,
+        sensorId: bridge.sensorId,
+        temp,
+      });
     }
   }
 
