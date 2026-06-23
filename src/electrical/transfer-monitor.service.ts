@@ -21,7 +21,7 @@ import {
 interface SiteConfig {
   name: string;
   device: 'ramos' | 'castelar';
-  regType: 'input' | 'holding';
+  regType: 'input' | 'holding' | 'discrete';
   address: number;
   quantity: number;
   decode: (regs: number[]) => SignalMap;
@@ -70,7 +70,7 @@ export class TransferMonitorService implements OnApplicationBootstrap {
       {
         name: 'ramos',
         device: 'ramos',
-        regType: 'input',
+        regType: 'discrete',
         address: 8000,
         quantity: 89,
         decode: decodeRamos,
@@ -110,14 +110,7 @@ export class TransferMonitorService implements OnApplicationBootstrap {
   private async pollSite(site: SiteConfig): Promise<void> {
     let regs: number[];
     try {
-      regs =
-        site.regType === 'input'
-          ? await this.modbus.readInput(site.device, site.address, site.quantity)
-          : await this.modbus.readHolding(
-              site.device,
-              site.address,
-              site.quantity,
-            );
+      regs = await this.readRegisters(site);
     } catch (err) {
       this.logger.debug(`${site.name}: lectura fallida (${(err as Error).message})`);
       return; // sin lectura: no notifica este ciclo
@@ -141,6 +134,25 @@ export class TransferMonitorService implements OnApplicationBootstrap {
 
     this.previous.set(site.name, current);
     this.gateway.broadcast('transfer', { site: site.name, signals: current });
+  }
+
+  private readRegisters(site: SiteConfig): Promise<number[]> {
+    switch (site.regType) {
+      case 'discrete':
+        return this.modbus.readDiscrete(
+          site.device,
+          site.address,
+          site.quantity,
+        );
+      case 'input':
+        return this.modbus.readInput(site.device, site.address, site.quantity);
+      case 'holding':
+        return this.modbus.readHolding(
+          site.device,
+          site.address,
+          site.quantity,
+        );
+    }
   }
 
   private notify(site: SiteConfig, key: string): void {

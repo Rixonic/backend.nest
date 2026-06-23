@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import ModbusRTU from 'modbus-serial';
 import { AppConfig, ModbusDeviceConfig } from '../../config/configuration';
 
-type RegisterType = 'holding' | 'input';
+type RegisterType = 'holding' | 'input' | 'discrete';
 
 /** Contadores acumulados por dispositivo (para diagnóstico de carga al PLC). */
 export interface DeviceMetrics {
@@ -98,6 +98,19 @@ export class ModbusService implements OnModuleInit, OnModuleDestroy {
     return this.enqueue(deviceName, 'input', address, quantity);
   }
 
+  /**
+   * Lee `quantity` discrete inputs (FC2) desde `address`. Devuelve un 0/1 por
+   * entrada (un bit, no un registro de 16 bits como holding/input). Es la
+   * función que usan los PLC de transferencia, donde cada señal es un bit.
+   */
+  readDiscrete(
+    deviceName: string,
+    address: number,
+    quantity: number,
+  ): Promise<number[]> {
+    return this.enqueue(deviceName, 'discrete', address, quantity);
+  }
+
   /** Snapshot de los contadores acumulados de un dispositivo (para métricas). */
   getMetrics(deviceName: string): DeviceMetrics | undefined {
     const device = this.devices.get(deviceName);
@@ -134,6 +147,12 @@ export class ModbusService implements OnModuleInit, OnModuleDestroy {
     device.client.setID(device.cfg.unitId);
     device.metrics.ops += 1;
     try {
+      if (type === 'discrete') {
+        // FC2: modbus-serial devuelve booleanos; los normalizamos a 0/1 para
+        // que el resto del pipeline siga tratando todo como number[].
+        const res = await device.client.readDiscreteInputs(address, quantity);
+        return res.data.map((bit) => (bit ? 1 : 0));
+      }
       const res =
         type === 'holding'
           ? await device.client.readHoldingRegisters(address, quantity)

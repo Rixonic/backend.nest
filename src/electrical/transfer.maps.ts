@@ -2,7 +2,7 @@
  * Decodificación de los PLC de transferencia eléctrica y textos de notificación.
  * Extraído de los nodos "Data Converter" de los flujos de Ramos Mejía y Castelar.
  *
- * - Ramos: lee 89 input registers (cada registro es un bit 0/1) desde 8000.
+ * - Ramos: lee 89 discrete inputs (FC2) desde 8000 (cada uno es un bit 0/1).
  * - Castelar: lee 3 holding registers desde 0 y los expande a bits (MSB primero).
  */
 import { registersToBits } from '../acquisition/modbus/modbus.util';
@@ -11,7 +11,7 @@ export type SignalMap = Record<string, boolean>;
 
 const on = (regs: number[], i: number): boolean => !!regs[i];
 
-/** Ramos Mejía: cada índice corresponde a un input register (8000 + i). */
+/** Ramos Mejía: cada índice corresponde a un discrete input FC2 (8000 + i). */
 export function decodeRamos(regs: number[]): SignalMap {
   return {
     isTransferAut: on(regs, 1),
