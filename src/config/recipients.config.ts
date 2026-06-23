@@ -58,14 +58,14 @@ export const RECIPIENTS: Record<string, DepartmentAlertConfig> = {
         { chatId: '7194476256', workingHours: [0, 24], admin: true },
         { chatId: '7010159330', workingHours: [0, 24], admin: true },
         { chatId: '6631285277', workingHours: [7, 22], admin: true }, // Daniel Bernatebe
-        { chatId: '7468417252', workingHours: [7, 22], admin: true }, // Cristian Lozano
+        //{ chatId: '7468417252', workingHours: [7, 22], admin: true }, // Cristian Lozano
       ],
       [
         { chatId: '5083746157', workingHours: [0, 24], admin: true },
         { chatId: '7194476256', workingHours: [0, 24], admin: true },
         { chatId: '7010159330', workingHours: [0, 24], admin: true },
         { chatId: '6631285277', workingHours: [7, 22], admin: true },
-        { chatId: '7468417252', workingHours: [7, 22], admin: true },
+        //{ chatId: '7468417252', workingHours: [7, 22], admin: true },
         { chatId: '7210451021', workingHours: [7, 22], admin: true }, // Veronica
       ],
     ],
