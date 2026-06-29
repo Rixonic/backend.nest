@@ -6,6 +6,7 @@ export class UpdateSensorDto {
     max     :   number; 
     min     :   number; 
     time    :   number;
+    offset  :   number;
     type    :   string;
     location:   string;
   }

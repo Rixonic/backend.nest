@@ -66,6 +66,14 @@ export class SensorService {
       updatedFields.time = sensorDto.time;
     }
 
+    if (sensorDto.offset !== undefined) {
+      updatedFields.offset = sensorDto.offset;
+    }
+
+    if (sensorDto.type !== undefined) {
+      updatedFields.type = sensorDto.type;
+    }
+
     await this.sensorsRepository.update(id, updatedFields);
     this.events.emitConfigChanged();
 

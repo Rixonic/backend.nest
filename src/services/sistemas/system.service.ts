@@ -62,8 +62,16 @@ export class SensorService {
       updatedFields.min = sensorDto.min;
     }
   
-    if (sensorDto.location !== undefined) {
+    if (sensorDto.time !== undefined) {
       updatedFields.time = sensorDto.time;
+    }
+
+    if (sensorDto.offset !== undefined) {
+      updatedFields.offset = sensorDto.offset;
+    }
+
+    if (sensorDto.type !== undefined) {
+      updatedFields.type = sensorDto.type;
     }
 
     await this.sensorsRepository.update(id, updatedFields);
