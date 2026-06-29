@@ -33,7 +33,7 @@ export class SensorService {
     return this.sensorsRepository.findOneBy({ id: id });
   }
 
-  async updateOne(id:number,sensorDto: UpdateSensorDto): Promise<Sensor | null> {
+  async updateOne(id: number, sensorDto: UpdateSensorDto): Promise<Sensor | null> {
     const sensor = await this.sensorsRepository.findOne({ where: { id } });
 
     if (!sensor) {
@@ -41,15 +41,15 @@ export class SensorService {
     }
 
     const updatedFields: Partial<Sensor> = {};
-  
+
     if (sensorDto.name !== undefined) {
       updatedFields.name = sensorDto.name;
     }
-  
+
     if (sensorDto.labId !== undefined) {
       updatedFields.labId = sensorDto.labId;
     }
-  
+
     if (sensorDto.location !== undefined) {
       updatedFields.location = sensorDto.location;
     }
@@ -57,12 +57,12 @@ export class SensorService {
     if (sensorDto.max !== undefined) {
       updatedFields.max = sensorDto.max;
     }
-  
+
     if (sensorDto.min !== undefined) {
       updatedFields.min = sensorDto.min;
     }
-  
-    if (sensorDto.location !== undefined) {
+
+    if (sensorDto.time !== undefined) {
       updatedFields.time = sensorDto.time;
     }
 
@@ -162,15 +162,15 @@ export class SensorReadingsService {
     //};
 
     return sensorReadings
-    .map(reading => ({
-      timestamp: new Date(reading.timestamp),
-      temp: reading.temp, // Aseguramos que sea number
-      //sensor_id: reading.sensor_id
-    }))
-    .reverse();
+      .map(reading => ({
+        timestamp: new Date(reading.timestamp),
+        temp: reading.temp, // Aseguramos que sea number
+        //sensor_id: reading.sensor_id
+      }))
+      .reverse();
   }
 
-  async findInterval(sensorId: number,  start: Date, end: Date ): Promise<ReadSensorReadingDto> {
+  async findInterval(sensorId: number, start: Date, end: Date): Promise<ReadSensorReadingDto> {
     //console.log("Start: ",start)
     //console.log("End: ",end)
     const sensorReadings = await this.sensorReadingsRepository.find({
@@ -195,7 +195,7 @@ export class SensorReadingsService {
     return formattedResult;
   }
 
-  async findIntervalV2(sensorId: number,  start: Date, end: Date ): Promise<{
+  async findIntervalV2(sensorId: number, start: Date, end: Date): Promise<{
     timestamp: Date; // un único valor, no array
     temp: number;
   }[]> {
@@ -213,11 +213,11 @@ export class SensorReadingsService {
     })
 
     return sensorReadings
-    .map(reading => ({
-      timestamp: new Date(reading.timestamp),
-      temp: reading.temp, // Aseguramos que sea number
-      //sensor_id: reading.sensor_id
-    }))
-    .reverse();
+      .map(reading => ({
+        timestamp: new Date(reading.timestamp),
+        temp: reading.temp, // Aseguramos que sea number
+        //sensor_id: reading.sensor_id
+      }))
+      .reverse();
   }
 }
