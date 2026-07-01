@@ -214,7 +214,7 @@ export class CisternaReadingsService {
       order: {
         timestamp: 'DESC', // Ordenamos por timestamp en orden descendente
       },
-      take: 20, // Limitamos a las últimas 30 entradas
+      take: 60, // Limitamos a las últimas 30 entradas
     })
 
     //const tempArray = sensorReadings.map(row => row.temp).reverse();;
@@ -228,7 +228,7 @@ export class CisternaReadingsService {
     return sensorReadings
       .map(reading => ({
         timestamp: new Date(reading.timestamp),
-        level:reading.level, // Aseguramos que sea number
+        level: reading.level, // Aseguramos que sea number
         //sensor_id: reading.sensor_id
       }))
       .reverse();
