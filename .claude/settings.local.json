@@ -4,7 +4,15 @@
       "Bash(tree:*)",
       "Bash(find:*)",
       "Bash(yarn build *)",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(grep -oE \"service_url[^,;]{0,120}\" base.js dtu.js)",
+      "Bash(grep -oE \".{400}\\\\\\\\\\\\$\\\\.ajax\\\\\\(\\\\{url:CONFIG\\\\.service_url\" base.js)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "PowerShell(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -ne '127.0.0.1'} | Select-Object IPAddress,InterfaceAlias)",
+      "PowerShell(foreach \\($p in 1880,4125,22,5432\\) { $r = Test-NetConnection -ComputerName 192.168.90.219 -Port $p -WarningAction SilentlyContinue; \"{0,-6} {1}\" -f $p, $r.TcpTestSucceeded })",
+      "mcp__plugin_playwright_playwright__browser_network_requests",
+      "mcp__plugin_playwright_playwright__browser_network_request"
     ]
   }
 }

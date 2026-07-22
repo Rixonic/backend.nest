@@ -1,0 +1,46 @@
+- generic [active] [ref=f2e1]:
+  - banner [ref=f2e2]:
+    - generic:
+      - generic [ref=f2e3]:
+        - link "Logo":
+          - /url: index.html
+          - img "Logo" [ref=f2e4] [cursor=pointer]
+      - generic:
+        - combobox [ref=f2e5]:
+          - option "English" [selected]
+          - option "简体中文"
+        - generic [ref=f2e6]: English ∨
+  - generic [ref=f2e9]:
+    - list [ref=f2e12]:
+      - listitem [ref=f2e13]:
+        - link "Status" [ref=f2e14] [cursor=pointer]:
+          - /url: index.html
+      - listitem [ref=f2e16]:
+        - link "System Settings" [ref=f2e17] [cursor=pointer]:
+          - /url: system.html
+      - listitem [ref=f2e19]:
+        - link "Serial Port Settings" [ref=f2e20] [cursor=pointer]:
+          - /url: uart.html
+      - listitem [ref=f2e22]:
+        - link "Communication Settings" [ref=f2e23] [cursor=pointer]:
+          - /url: socket.html
+      - listitem [ref=f2e25]:
+        - link "Advanced Settings" [ref=f2e26] [cursor=pointer]:
+          - /url: javascript:;
+      - listitem [ref=f2e28]:
+        - link "Others" [ref=f2e29] [cursor=pointer]:
+          - /url: others.html
+    - generic [ref=f2e34]:
+      - generic [ref=f2e37]:
+        - heading "Status" [level=3] [ref=f2e39]
+        - generic [ref=f2e40]: System running status overview
+      - generic [ref=f2e45]:
+        - heading "Helper" [level=4] [ref=f2e47]
+        - generic [ref=f2e48]: System running status overview
+  - contentinfo [ref=f2e50]:
+    - generic [ref=f2e51]:
+      - link:
+        - /url: "#"
+      - text: build23092615012212889
+      - generic [ref=f2e52]: Recommend using Google Chrome, Mozilla Firefox, Internet Explorer 11+
+  - generic [ref=f2e53]: Please wait...

@@ -48,8 +48,6 @@ export interface AppConfig {
     oxygenPoll: number;
     /** Persistencia de presión de oxígeno en `oxigeno.historic` (ms). */
     oxygenPersist: number;
-    /** Recarga de la config de sensores (max/min/time/offset) desde la BD. */
-    sensorReload: number;
     /** Ticks de `monitorTick` sin lectura MQTT antes de marcar el sensor como desconectado. */
     mqttDisconnectTicks: number;
   };
@@ -127,7 +125,6 @@ export default (): AppConfig => ({
     waterPersist: int(process.env.INT_WATER_PERSIST, 60_000),
     oxygenPoll: int(process.env.INT_OXYGEN_POLL, 1000),
     oxygenPersist: int(process.env.INT_OXYGEN_PERSIST, 300_000),
-    sensorReload: int(process.env.INT_SENSOR_RELOAD, 60_000),
     mqttDisconnectTicks: int(process.env.INT_MQTT_DISCONNECT_TICKS, 10),
   },
   escalation: {

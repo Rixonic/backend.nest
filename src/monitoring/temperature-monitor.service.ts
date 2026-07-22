@@ -36,9 +36,6 @@ interface DepartmentBinding {
  *
  * El estado de alerta es consumido por `EscalationService` para notificar.
  */
-/** Cadencia del log de métricas Modbus del laboratorio (ms). */
-const METRICS_LOG_MS = 60_000;
-
 @Injectable()
 export class TemperatureMonitorService
   implements OnApplicationBootstrap, OnModuleDestroy
@@ -53,12 +50,6 @@ export class TemperatureMonitorService
   /** Dirección base y cantidad del bloque de registros del laboratorio. */
   private labBase = 0;
   private labQuantity = 0;
-  /** Acumuladores de duración de ciclo (se reinician en cada log de métricas). */
-  private cycleCount = 0;
-  private cycleMsTotal = 0;
-  private cycleMsMax = 0;
-  /** Último snapshot de métricas del PLC para calcular deltas por minuto. */
-  private lastMetrics = { ops: 0, errors: 0, timeouts: 0, reconnects: 0 };
 
   constructor(
     private readonly config: ConfigService<AppConfig, true>,
@@ -109,15 +100,6 @@ export class TemperatureMonitorService
     this.addInterval('temp-readings-persist', intervals.readingsPersist, () =>
       this.persist(),
     );
-    // Recarga periódica de la config (max/min/time/offset) para que las ediciones
-    // por PUT /sensor/update impacten el alerteo en vivo sin reiniciar.
-    this.addInterval('temp-config-reload', intervals.sensorReload, () => {
-      void this.reloadSensors();
-    });
-    this.addInterval('temp-modbus-metrics', METRICS_LOG_MS, () =>
-      this.logMetrics(),
-    );
-
     // Lectura Modbus del laboratorio: loop secuencial (nunca solapa ciclos) con
     // backoff ante error, en lugar de setInterval (que podría apilar lecturas si
     // el PLC tarda). Reemplaza al ex `temp-modbus-poll`.
@@ -204,7 +186,6 @@ export class TemperatureMonitorService
   private async runLabModbusLoop(): Promise<void> {
     while (this.running) {
       const intervals = this.config.get('intervals', { infer: true });
-      const t0 = Date.now();
       let ok = true;
       try {
         await this.pollLabModbus();
@@ -212,11 +193,6 @@ export class TemperatureMonitorService
         ok = false;
         this.logger.debug(`Ciclo Modbus lab fallido: ${(err as Error).message}`);
       }
-      const elapsed = Date.now() - t0;
-      this.cycleCount += 1;
-      this.cycleMsTotal += elapsed;
-      if (elapsed > this.cycleMsMax) this.cycleMsMax = elapsed;
-
       await this.sleep(ok ? intervals.tempModbusPoll : intervals.tempModbusBackoff);
     }
   }
@@ -275,29 +251,6 @@ export class TemperatureMonitorService
         temp,
       });
     }
-  }
-
-  /** Loguea duración de ciclo y ops/min contra el PLC (corre cada `METRICS_LOG_MS`). */
-  private logMetrics(): void {
-    const m = this.modbus.getMetrics('temp') ?? this.lastMetrics;
-    const d = {
-      ops: m.ops - this.lastMetrics.ops,
-      errors: m.errors - this.lastMetrics.errors,
-      timeouts: m.timeouts - this.lastMetrics.timeouts,
-      reconnects: m.reconnects - this.lastMetrics.reconnects,
-    };
-    this.lastMetrics = { ...m };
-    const avg = this.cycleCount
-      ? Math.round(this.cycleMsTotal / this.cycleCount)
-      : 0;
-    this.logger.log(
-      `Modbus lab (temp): ${this.cycleCount} ciclos, ciclo avg ${avg}ms / max ` +
-        `${this.cycleMsMax}ms; PLC: ${d.ops} ops/min, ${d.errors} errores, ` +
-        `${d.timeouts} timeouts, ${d.reconnects} reconexiones`,
-    );
-    this.cycleCount = 0;
-    this.cycleMsTotal = 0;
-    this.cycleMsMax = 0;
   }
 
   private sleep(ms: number): Promise<void> {

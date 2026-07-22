@@ -1,0 +1,6 @@
+[    7702ms] [LOG] [HTTP] <Request>: msg={"CID":10003,"PL":["SOCK"]} @ http://admin:admin@192.168.100.252/js/base.js:0
+[    7708ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://admin:admin@192.168.100.252/socket.html:0
+[    7708ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://admin:admin@192.168.100.252/socket.html:0
+[    7708ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://admin:admin@192.168.100.252/socket.html:0
+[    8097ms] [LOG] [HTTP] <Response>: {"CID":10004,"RC":0,"Remain":0,"PL":{"SOCK":[{"Name":"netp","Protocol":"TCP-SERVER","Server":"0.0.0.0","ServerPort":1880,"LocalPort":8899,"BufSize":512,"KeepAlive":60,"Timeout":0,"Security":"Disable","SecuKey":"","ConnectMode":"Always","StopSerial":"","Rout":"uart","maxAccept":1,"VcomEn":0,"TCPVcom":0}]}} @ http://admin:admin@192.168.100.252/js/base.js:0
+[    8098ms] [LOG] [HTTP] <FullResponse>: {"SOCK":[{"Name":"netp","Protocol":"TCP-SERVER","Server":"0.0.0.0","ServerPort":1880,"LocalPort":8899,"BufSize":512,"KeepAlive":60,"Timeout":0,"Security":"Disable","SecuKey":"","ConnectMode":"Always","StopSerial":"","Rout":"uart","maxAccept":1,"VcomEn":0,"TCPVcom":0}]} @ http://admin:admin@192.168.100.252/js/base.js:0
