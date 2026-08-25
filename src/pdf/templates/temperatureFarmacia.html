@@ -159,66 +159,73 @@
   </table>
 
   <script>
-    // Datos de ejemplo: tiempo y temperatura
+    try {
+      if (typeof Chart === "undefined") {
+        throw new Error("Chart.js no disponible");
+      }
+
+      // Datos: tiempo y temperatura
       const tiempo = {{time}};
       const temperatura = {{temp}};
 
-    // Configura el gráfico
-    const ctx = document.getElementById("temperatureChart").getContext("2d");
-    const temperatureChart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: tiempo,
-        datasets: [
-          {
-            label: "Temperatura",
-            data: temperatura,
-            borderColor: "rgb(1, 80, 192)",
-            borderWidth: 1,
-            fill: false,
-            pointRadius: 0, // Elimina los puntos
-          },
-        ],
-      },
-      options: {
-        animation: false,
-        plugins: {
-          legend: {
-            display: false,
-          },
+      // Configura el gráfico
+      const ctx = document.getElementById("temperatureChart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: tiempo,
+          datasets: [
+            {
+              label: "Temperatura",
+              data: temperatura,
+              borderColor: "rgb(1, 80, 192)",
+              borderWidth: 1,
+              fill: false,
+              pointRadius: 0, // Elimina los puntos
+            },
+          ],
         },
-        scales: {
-          x: {
-            type: "time",
-            time: {
-              parser: "dd/MM/yyyy HH:mm:ss",
-              tooltipFormat: "dd/MM/yyyy HH:mm",
-              unit: "day",
-              displayFormats: {
-                day: "dd/MM/yyyy",
+        options: {
+          animation: false,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            x: {
+              type: "time",
+              time: {
+                parser: "dd/MM/yyyy HH:mm:ss",
+                tooltipFormat: "dd/MM/yyyy HH:mm",
+                unit: "day",
+                displayFormats: {
+                  day: "dd/MM/yyyy",
+                },
+              },
+              title: {
+                display: true,
+                text: "Tiempo",
               },
             },
-            title: {
-              display: true,
-              text: "Tiempo",
-            },
-          },
-          y: {
-            title: {
-              display: true,
-              text: "Temperatura (°C)",
+            y: {
+              title: {
+                display: true,
+                text: "Temperatura (°C)",
+              },
             },
           },
         },
-      },
-    });
-
-    // Emitir un evento personalizado cuando el gráfico se haya renderizado
-    const temperatureChartCanvas =
-      document.getElementById("temperatureChart");
-    temperatureChartCanvas.addEventListener("rendered", () => {
-      window.rendered = true;
-    });
+      });
+    } catch (e) {
+      // Sin esto, un fallo de Chart.js deja el canvas en blanco y el PDF sale
+      // igual: un registro de temperatura que parece válido y no tiene datos.
+      document.getElementById("temperatureChart").outerHTML =
+        '<div style="padding: 40px; color: #b00; font-weight: bold; font-size: 12pt">' +
+        "ERROR: no se pudo generar el grafico (" +
+        e.message +
+        ")</div>";
+    }
   </script>
 </body>
 

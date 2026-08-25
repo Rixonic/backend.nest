@@ -3,6 +3,7 @@ import * as puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import { format, getMonth, getYear } from 'date-fns';
+import { inlineAssets, warmUpAssets, TEMPLATES_DIR } from './template-assets';
 import { SensorReadingsService as LaboratoryService } from '../services/laboratorio/laboratory.service';
 import { SensorReadingsService as NurseryService } from '../services/enfermeria/nursery.service';
 import { SensorReadingsService as FarmacyService } from '../services/farmacia/farmacy.service';
@@ -16,18 +17,26 @@ const months = [
 
 @Injectable()
 export class PdfService implements OnModuleInit, OnModuleDestroy {
-  private browser: puppeteer.Browser;
+  private browser: puppeteer.Browser | undefined;
   private templatesPath: string;
+
+  /** Tope de espera para `page.close()` antes de descartar el browser. */
+  private static readonly CLOSE_TIMEOUT_MS = 5_000;
 
   constructor(
     private readonly laboratoryService: LaboratoryService,
     private readonly nurseryService: NurseryService,
     private readonly farmacyService: FarmacyService,
   ) {
-    this.templatesPath = path.join(process.cwd(), 'src', 'pdf', 'templates');
+    // Anclado a __dirname (ver template-assets.ts), no a process.cwd(): el cwd
+    // sale de dónde se lanzó el proceso y pm2 lo persiste en su dump, así que
+    // un resurrect tras un reboot lo cambia y el fallo aparecería recién en el
+    // primer request de PDF.
+    this.templatesPath = TEMPLATES_DIR;
   }
 
   async onModuleInit() {
+    warmUpAssets();
     await this.initBrowser();
   }
 
@@ -77,8 +86,21 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage', // ← Importante para servidores con poca RAM
+          // Chrome mantiene un renderer tibio pre-lanzado y lo respawnea cada
+          // vez que lo consume: ~150 MB ociosos permanentes por browser.
+          '--disable-features=SpareRendererForSitePerProcess',
+          '--disable-background-networking',
+          '--disable-extensions',
+          '--no-first-run',
+          '--mute-audio',
         ]
       });
+
+      // launch() abre una about:blank que nadie cierra y que queda como un
+      // renderer vivo durante toda la vida del proceso.
+      for (const p of await this.browser.pages()) {
+        await p.close().catch(() => { });
+      }
 
       console.log('Browser initialized successfully');
     } catch (error) {
@@ -92,6 +114,44 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
     if (!this.browser || !this.browser.isConnected()) {
       console.log('Browser disconnected, reinitializing...');
       await this.initBrowser();
+    }
+  }
+
+  /**
+   * Cierra la página garantizando que el `finally` no quede colgado.
+   *
+   * `page.close()` no acepta timeout y puede no resolver nunca si el renderer
+   * quedó trabado. Un `.catch()` no cubre ese caso: una promesa pendiente nunca
+   * rechaza, así que el catch no se dispara y el await queda esperando para
+   * siempre, con la página viva. Corremos contra un temporizador y, si el
+   * cierre pierde, tiramos el browser entero: es lo único que libera el proceso
+   * renderer a nivel SO.
+   */
+  private async closePageSafely(page: puppeteer.Page): Promise<void> {
+    let timer: NodeJS.Timeout | undefined;
+
+    const closed = await Promise.race([
+      page.close().then(
+        () => true,
+        (err) => {
+          console.error('Error closing page:', err);
+          return true;
+        },
+      ),
+      new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => resolve(false), PdfService.CLOSE_TIMEOUT_MS);
+      }),
+    ]);
+
+    if (timer) clearTimeout(timer);
+
+    if (!closed) {
+      console.error('[pdf] page.close() colgado: descartando el browser');
+      const dead = this.browser;
+      this.browser = undefined; // el próximo ensureBrowser() relanza
+      void dead?.close().catch(() => {
+        dead?.process()?.kill('SIGKILL');
+      });
     }
   }
 
@@ -154,6 +214,10 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
         html = html.replace(new RegExp(key, 'g'), String(value));
       });
 
+      // Logos, fuente y Chart.js embebidos: el render no hace ninguna petición
+      // de red, así setContent no bloquea esperando a MinIO ni a jsdelivr.
+      html = inlineAssets(html);
+
       // Establecer el contenido HTML
       await page.setContent(html);
 
@@ -175,9 +239,7 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
       return Buffer.from(pdf);
     } finally {
       if (page) { // ← Solo cierra si page existe
-        await page.close().catch(err =>
-          console.error('Error closing page:', err)
-        );
+        await this.closePageSafely(page);
       }
     }
 
@@ -199,6 +261,8 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
         html = html.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
       });
 
+      html = inlineAssets(html);
+
       // Establecer el contenido HTML
       await page.setContent(html);
 
@@ -211,18 +275,18 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
       return Buffer.from(pdf);
     } finally {
       if (page) { // ← Agregar esta verificación
-        await page.close().catch(err =>
-          console.error('Error closing page:', err)
-        );
+        await this.closePageSafely(page);
       }
     }
   }
 
   async generateMultipleTemperatureReports(sensors: any[], startDate: Date, endDate: Date, service: string): Promise<Buffer> {
 
-    const tempDate = format(new Date(), 'ddMMyyyyHHmmss');
-    const outputDir = path.join(process.cwd(), 'temp_pdfs_' + tempDate);
-    const zipPath = path.join(process.cwd(), 'sensors_pdfs.zip');
+    // Sufijo único: 'ddMMyyyyHHmmss' tiene resolución de segundo, así que dos
+    // requests concurrentes se pisaban el zip (que además tenía nombre fijo).
+    const stamp = `${format(new Date(), 'ddMMyyyyHHmmss')}_${Math.random().toString(36).slice(2, 8)}`;
+    const outputDir = path.join(process.cwd(), 'temp_pdfs_' + stamp);
+    const zipPath = path.join(process.cwd(), `sensors_pdfs_${stamp}.zip`);
 
     // Crear directorio temporal si no existe
     if (!fs.existsSync(outputDir)) {
@@ -241,16 +305,19 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
       const output = fs.createWriteStream(zipPath);
       const archive = archiver('zip', { zlib: { level: 9 } });
 
-      archive.on('error', (err) => {
-        throw err;
+      // Un `throw` dentro del handler de 'error' NO lo atrapa el try/catch de
+      // afuera: sale como uncaughtException y mata el proceso. Lo canalizamos
+      // por el reject de la promesa que ya estábamos esperando.
+      await new Promise<void>((resolve, reject) => {
+        output.on('close', () => resolve());
+        output.on('error', reject);
+        archive.on('error', reject);
+        archive.on('warning', (err) => console.warn('archiver warning:', err));
+
+        archive.pipe(output);
+        archive.directory(outputDir, false);
+        archive.finalize().catch(reject);
       });
-
-      archive.pipe(output);
-      archive.directory(outputDir, false);
-      await archive.finalize();
-
-      // Esperar a que se complete la escritura del ZIP
-      await new Promise((resolve) => output.on('close', resolve));
 
       // Leer el archivo ZIP
       const zipBuffer = fs.readFileSync(zipPath);
