@@ -109,7 +109,7 @@ export class LiquidMonitorService implements OnApplicationBootstrap {
       try {
         const jpeg = await fetchSnapshot(camera);
         this.lastImage = jpeg;
-        reading = await readLcd(jpeg);
+        reading = readLcd(jpeg);
       } catch (err) {
         // Un error de la cámara (red, credenciales) no se arregla reintentando
         // en el mismo segundo; y con 401 conviene no insistir (bloqueo de IP).

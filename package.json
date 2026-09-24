@@ -34,6 +34,7 @@
     "date-fns": "^4.1.0",
     "handlebars": "^4.7.8",
     "joi": "^18.2.1",
+    "jpeg-js": "^0.4.4",
     "modbus-serial": "^8.0.25",
     "mqtt": "^5.15.1",
     "mssql": "^10.0.4",
@@ -45,7 +46,6 @@
     "reflect-metadata": "0.2.2",
     "rimraf": "5.0.10",
     "rxjs": "7.8.1",
-    "sharp": "^0.34.5",
     "typeorm": "0.3.20"
   },
   "devDependencies": {

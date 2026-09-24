@@ -1,31 +1,28 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import * as sharp from 'sharp';
+import { decode, encode } from 'jpeg-js';
 import { readLcd } from './lcd-reader';
 
-const fixture = readFileSync(join(__dirname, '__fixtures__', 'lcd-2860.jpg'));
+const load = (file: string): Buffer =>
+  readFileSync(join(__dirname, '__fixtures__', file));
 
 /** Desplaza la imagen (dx, dy) px rellenando con gris, simulando un leve reencuadre. */
-async function shifted(dx: number, dy: number): Promise<Buffer> {
-  const { width, height } = await sharp(fixture).metadata();
-  const padded = await sharp(fixture)
-    .extend({
-      left: Math.max(dx, 0),
-      top: Math.max(dy, 0),
-      right: Math.max(-dx, 0),
-      bottom: Math.max(-dy, 0),
-      background: { r: 128, g: 128, b: 128 },
-    })
-    .toBuffer();
-  return sharp(padded)
-    .extract({
-      left: Math.max(-dx, 0),
-      top: Math.max(-dy, 0),
-      width: width!,
-      height: height!,
-    })
-    .jpeg({ quality: 90 })
-    .toBuffer();
+function shifted(file: string, dx: number, dy: number): Buffer {
+  const src = decode(load(file), { useTArray: true });
+  const { width, height } = src;
+  const out = new Uint8Array(src.data.length).fill(128);
+  for (let y = 0; y < height; y++) {
+    const sy = y - dy;
+    if (sy < 0 || sy >= height) continue;
+    for (let x = 0; x < width; x++) {
+      const sx = x - dx;
+      if (sx < 0 || sx >= width) continue;
+      const d = (y * width + x) * 4;
+      const s = (sy * width + sx) * 4;
+      for (let c = 0; c < 4; c++) out[d + c] = src.data[s + c];
+    }
+  }
+  return encode({ data: out, width, height }, 90).data;
 }
 
 describe('readLcd', () => {
@@ -33,10 +30,8 @@ describe('readLcd', () => {
     ['lcd-2860.jpg', 2860],
     // Tomada ~1 h después: la cámara ya se había corrido 2 px (dx = -2).
     ['lcd-2853.jpg', 2853],
-  ])('lee el nivel del snapshot real %s', async (file, expected) => {
-    const r = await readLcd(
-      readFileSync(join(__dirname, '__fixtures__', file)),
-    );
+  ])('lee el nivel del snapshot real %s', (file, expected) => {
+    const r = readLcd(load(file));
     expect(r.error).toBeUndefined();
     expect(r.value).toBe(expected);
   });
@@ -47,18 +42,23 @@ describe('readLcd', () => {
     [-5, 3],
     [3, -6],
     [-7, -7],
-  ])('tolera un corrimiento de la cámara (%i, %i)', async (dx, dy) => {
-    const r = await readLcd(await shifted(dx, dy));
+  ])('tolera un corrimiento de la cámara (%i, %i)', (dx, dy) => {
+    const r = readLcd(shifted('lcd-2860.jpg', dx, dy));
     expect(r.value).toBe(2860);
   });
 
-  it('descarta una imagen sin display', async () => {
-    const blank = await sharp({
-      create: { width: 2560, height: 1440, channels: 3, background: '#808080' },
-    })
-      .jpeg()
-      .toBuffer();
-    const r = await readLcd(blank);
+  it('descarta una imagen sin display', () => {
+    const [width, height] = [2560, 1440];
+    const gray = new Uint8Array(width * height * 4).fill(128);
+    const r = readLcd(encode({ data: gray, width, height }, 90).data);
     expect(r.value).toBeNull();
+  });
+
+  it('descarta un snapshot de menor resolución', () => {
+    const [width, height] = [640, 360];
+    const gray = new Uint8Array(width * height * 4).fill(128);
+    const r = readLcd(encode({ data: gray, width, height }, 90).data);
+    expect(r.value).toBeNull();
+    expect(r.error).toMatch(/resolución/);
   });
 });

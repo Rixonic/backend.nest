@@ -1,4 +1,4 @@
-import * as sharp from 'sharp';
+import { decode as decodeJpeg } from 'jpeg-js';
 
 /**
  * Lector del display LCD de 7 segmentos del Linde Hawkeye (línea superior =
@@ -100,18 +100,22 @@ export interface LcdReading {
 }
 
 interface Gray {
-  data: Buffer;
+  data: Uint8Array;
   width: number;
   height: number;
 }
 
-export async function readLcd(jpeg: Buffer): Promise<LcdReading> {
-  const { data, info } = await sharp(jpeg)
-    .extract(REGION)
-    .greyscale()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const img: Gray = { data, width: info.width, height: info.height };
+export function readLcd(jpeg: Buffer): LcdReading {
+  const img = cropGray(jpeg);
+  if (!img) {
+    return {
+      value: null,
+      digits: '',
+      gap: 0,
+      shift: { dx: 0, dy: 0 },
+      error: 'resolución del snapshot menor a la calibrada',
+    };
+  }
 
   const top = findEdge(img, 'row');
   const left = findEdge(img, 'col');
@@ -142,6 +146,35 @@ export async function readLcd(jpeg: Buffer): Promise<LcdReading> {
   if (!/^ *\d+$/.test(digits)) return fail('formato de número inválido');
 
   return { value: Number(digits.trim()), digits, gap, shift };
+}
+
+/**
+ * Decodifica el JPEG y devuelve `REGION` en escala de grises (luminancia
+ * Rec. 709). Se usa `jpeg-js` (JavaScript puro) en lugar de `sharp`: los
+ * binarios precompilados de `sharp` exigen CPU x86-64-v2 y el servidor de
+ * producción no la tiene. Decodificar el cuadro completo tarda ~250 ms, de
+ * sobra para una captura cada 15 min.
+ */
+function cropGray(jpeg: Buffer): Gray | null {
+  const rgb = decodeJpeg(jpeg, { useTArray: true, formatAsRGBA: false });
+  if (
+    rgb.width < REGION.left + REGION.width ||
+    rgb.height < REGION.top + REGION.height
+  ) {
+    return null;
+  }
+  const data = new Uint8Array(REGION.width * REGION.height);
+  for (let y = 0; y < REGION.height; y++) {
+    for (let x = 0; x < REGION.width; x++) {
+      const i = ((REGION.top + y) * rgb.width + REGION.left + x) * 3;
+      data[y * REGION.width + x] = Math.round(
+        0.2126 * rgb.data[i] +
+          0.7152 * rgb.data[i + 1] +
+          0.0722 * rgb.data[i + 2],
+      );
+    }
+  }
+  return { data, width: REGION.width, height: REGION.height };
 }
 
 /**
