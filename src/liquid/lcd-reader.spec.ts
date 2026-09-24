@@ -30,6 +30,8 @@ describe('readLcd', () => {
     ['lcd-2860.jpg', 2860],
     // Tomada ~1 h después: la cámara ya se había corrido 2 px (dx = -2).
     ['lcd-2853.jpg', 2853],
+    // Cámara corrida (-5, -2) y reflejo de sol sobre el primer dígito.
+    ['lcd-2794.jpg', 2794],
   ])('lee el nivel del snapshot real %s', (file, expected) => {
     const r = readLcd(load(file));
     expect(r.error).toBeUndefined();

@@ -13,8 +13,12 @@ import { decode as decodeJpeg } from 'jpeg-js';
  *   hasta ±`EDGE_SEARCH` px sin depender de los dígitos. Alinear "buscando el
  *   corrimiento que mejor decodifica" no sirve: corrido 3-4 px, el LCD sigue
  *   dando números válidos pero incorrectos (p. ej. 2868 en lugar de 2860).
- * - Contraste relativo: cada segmento se compara contra el fondo del interior
- *   del mismo dígito (tolera cambios de iluminación a lo largo del día).
+ * - Contraste local: cada segmento se compara contra el LCD a ambos lados de
+ *   él (perpendicular al segmento). Tolera cambios de iluminación a lo largo
+ *   del día y, sobre todo, reflejos sobre el vidrio: un reflejo es un gradiente
+ *   de brillo que puede variar ~40 niveles en 10 px, y comparar contra un fondo
+ *   único por dígito lo confunde con segmentos (así se perdía el primer dígito
+ *   con sol sobre la esquina inferior izquierda del display).
  * - Búsqueda local de ±`LOCAL_RANGE` px por segmento (el LCD tiene cursiva y un
  *   paso entre dígitos no del todo uniforme).
  * - Validación estricta: si no se encuentra el marco, algún dígito no es un
@@ -50,12 +54,6 @@ const SEGMENTS: [dx: number, dy: number, o: Orientation][] = [
   [-1, 19, 'h'], // g
 ];
 
-/** Puntos de fondo (interior de los "huecos" del dígito), siempre apagados. */
-const BACKGROUND: [dx: number, dy: number][] = [
-  [-1, 9],
-  [-3, 29],
-];
-
 /** Patrones abcdefg → dígito. `6` y `9` con y sin la "colita". */
 const PATTERNS: Record<string, number> = {
   '1111110': 0,
@@ -78,6 +76,11 @@ const EDGE_SEARCH = 12;
 /** Diferencia mínima de gris entre el marco y su entorno para darlo por encontrado. */
 const MIN_EDGE_CONTRAST = 60;
 const LOCAL_RANGE = 2;
+/**
+ * Distancia (px) del centro del segmento a cada flanco con el que se compara.
+ * Con 5 o más, el flanco superior del segmento `a` alcanza el marco del LCD.
+ */
+const FLANK = 4;
 /** Diferencia mínima (niveles de gris) entre el segmento encendido más débil y el apagado más fuerte. */
 const MIN_GAP = 8;
 /** Contraste medio mínimo de los segmentos encendidos (display legible). */
@@ -231,24 +234,32 @@ function decode(contrasts: number[]): Decoded {
   return { digits, gap, onMean };
 }
 
-/** Contraste (fondo − segmento) de los 7 segmentos de cada dígito, en orden. */
+/**
+ * Contraste (flancos − segmento) de los 7 segmentos de cada dígito, en orden.
+ * Promediar los dos flancos cancela un gradiente de brillo (reflejo) que
+ * atraviese el segmento.
+ */
 function measure(img: Gray, dx: number, dy: number): number[] {
   const out: number[] = [];
   for (let i = 0; i < DIGIT_COUNT; i++) {
     const ax = DIGIT0.x + DIGIT_PITCH * i + dx - REGION.left;
     const ay = DIGIT0.y + dy - REGION.top;
-    const bg =
-      BACKGROUND.reduce((s, [x, y]) => s + mean(img, ax + x, ay + y, 3, 4), 0) /
-      BACKGROUND.length;
     for (const [x, y, o] of SEGMENTS) {
       // Búsqueda local, sobre todo en el eje perpendicular al segmento.
       const rx = o === 'v' ? LOCAL_RANGE : 1;
       const ry = o === 'h' ? LOCAL_RANGE : 1;
       const [w, h] = o === 'h' ? [8, 3] : [3, 8];
+      const [fx, fy] = o === 'h' ? [0, FLANK] : [FLANK, 0];
       let c = -Infinity;
       for (let ly = -ry; ly <= ry; ly++) {
         for (let lx = -rx; lx <= rx; lx++) {
-          c = Math.max(c, bg - mean(img, ax + x + lx, ay + y + ly, w, h));
+          const cx = ax + x + lx;
+          const cy = ay + y + ly;
+          const bg =
+            (mean(img, cx - fx, cy - fy, w, h) +
+              mean(img, cx + fx, cy + fy, w, h)) /
+            2;
+          c = Math.max(c, bg - mean(img, cx, cy, w, h));
         }
       }
       out.push(c);
