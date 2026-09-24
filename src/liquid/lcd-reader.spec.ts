@@ -32,6 +32,9 @@ describe('readLcd', () => {
     ['lcd-2853.jpg', 2853],
     // Cámara corrida (-5, -2) y reflejo de sol sobre el primer dígito.
     ['lcd-2794.jpg', 2794],
+    // Atardecer (19:09): fondo del LCD a la mitad de brillo, mucho ruido y
+    // contraste de los segmentos a ~1/3 del diurno. Cámara corrida (-7, -3).
+    ['lcd-2648-dusk.jpg', 2648],
   ])('lee el nivel del snapshot real %s', (file, expected) => {
     const r = readLcd(load(file));
     expect(r.error).toBeUndefined();

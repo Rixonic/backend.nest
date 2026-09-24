@@ -72,6 +72,11 @@ export interface AppConfig {
   cameras: {
     /** Cámara Hikvision apuntada al display Linde Hawkeye del tanque de oxígeno líquido. */
     liquid: CameraConfig;
+    /**
+     * Archivo en disco de cada foto capturada del LCD (para analizar/recalibrar
+     * el lector, p. ej. de noche). `keepDays = 0` lo desactiva.
+     */
+    liquidArchive: { dir: string; keepDays: number };
   };
   mqtt: {
     url: string;
@@ -185,6 +190,10 @@ export default (): AppConfig => ({
       user: str(process.env.LIQUID_CAMERA_USER, 'admin'),
       pass: str(process.env.LIQUID_CAMERA_PASS, ''),
       channel: int(process.env.LIQUID_CAMERA_CHANNEL, 101),
+    },
+    liquidArchive: {
+      dir: str(process.env.LIQUID_SNAPSHOT_DIR, 'snapshots/liquid'),
+      keepDays: int(process.env.LIQUID_SNAPSHOT_KEEP_DAYS, 7),
     },
   },
   mqtt: {

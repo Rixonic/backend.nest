@@ -19,6 +19,9 @@ npm-debug.log
 # dist
 /dist
 
+# fotos archivadas del LCD de oxígeno líquido
+/snapshots
+
 # env
 .env
 .env.local

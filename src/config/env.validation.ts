@@ -49,6 +49,8 @@ export const envValidationSchema = Joi.object({
   LIQUID_CAMERA_USER: Joi.string().optional(),
   LIQUID_CAMERA_PASS: Joi.string().allow('').optional(),
   LIQUID_CAMERA_CHANNEL: Joi.number().positive().optional(),
+  LIQUID_SNAPSHOT_DIR: Joi.string().optional(),
+  LIQUID_SNAPSHOT_KEEP_DAYS: Joi.number().min(0).optional(),
 
   // MQTT
   MQTT_URL: Joi.string().optional(),

@@ -81,10 +81,18 @@ const LOCAL_RANGE = 2;
  * Con 5 o más, el flanco superior del segmento `a` alcanza el marco del LCD.
  */
 const FLANK = 4;
-/** Diferencia mínima (niveles de gris) entre el segmento encendido más débil y el apagado más fuerte. */
-const MIN_GAP = 8;
+/**
+ * Separación mínima entre el segmento encendido más débil y el apagado más
+ * fuerte, relativa al contraste medio de los encendidos. Es relativa porque el
+ * contraste escala con la luz: al atardecer el fondo del LCD cae de ~90 a ~45
+ * niveles de gris y los segmentos encendidos pasan de ~45 a ~16 de contraste,
+ * aunque el corte sigue siendo nítido (margen ~0,3 del contraste medio, contra
+ * ~0,5-0,6 de día). `MIN_GAP` es un piso absoluto contra el ruido del sensor.
+ */
+const MIN_GAP_RATIO = 0.2;
+const MIN_GAP = 3;
 /** Contraste medio mínimo de los segmentos encendidos (display legible). */
-const MIN_ON_CONTRAST = 15;
+const MIN_ON_CONTRAST = 8;
 
 /** Región que se recorta del snapshot: marco + dígitos + margen de búsqueda. */
 const REGION = { left: 975, top: 222, width: 250, height: 100 };
@@ -143,7 +151,9 @@ export function readLcd(jpeg: Buffer): LcdReading {
     error,
   });
   if (onMean < MIN_ON_CONTRAST) return fail('display sin contraste suficiente');
-  if (gap < MIN_GAP) return fail('segmentos ambiguos');
+  if (gap < Math.max(MIN_GAP, MIN_GAP_RATIO * onMean)) {
+    return fail('segmentos ambiguos');
+  }
   if (digits.includes('?')) return fail('patrón de dígito inválido');
   // Solo se admiten blancos a la izquierda (ceros no significativos apagados).
   if (!/^ *\d+$/.test(digits)) return fail('formato de número inválido');
