@@ -3,6 +3,7 @@ import { TemperatureMonitorService } from '../monitoring/temperature-monitor.ser
 import { TransferMonitorService } from '../electrical/transfer-monitor.service';
 import { WaterMonitorService } from '../water/water-monitor.service';
 import { OxygenMonitorService } from '../oxygen/oxygen-monitor.service';
+import { LiquidMonitorService } from '../liquid/liquid-monitor.service';
 
 /**
  * Expone el estado en vivo actual (en memoria) de todos los dominios en una sola
@@ -17,6 +18,7 @@ export class MonitorController {
     private readonly transfer: TransferMonitorService,
     private readonly water: WaterMonitorService,
     private readonly oxygen: OxygenMonitorService,
+    private readonly liquid: LiquidMonitorService,
   ) {}
 
   @Get('snapshot')
@@ -26,6 +28,7 @@ export class MonitorController {
       transfer: this.transfer.getSnapshot(),
       water: this.water.getSnapshot(),
       oxygen: this.oxygen.getSnapshot(),
+      liquid: this.liquid.getSnapshot(),
     };
   }
 }

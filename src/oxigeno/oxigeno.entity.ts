@@ -42,3 +42,18 @@ export class OxygenReading extends BaseEntity {
   @Column('decimal')
   pressure: number; // Presión registrada
 }
+
+/**
+ * Nivel del tanque de oxígeno líquido (kg), leído del display LCD Linde
+ * Hawkeye por cámara. Tabla `oxigeno.liquid` (ya creada): `timestamp`
+ * (timestamptz, PK) + `measure` (integer). El timestamp lo asigna el monitor al
+ * momento de la captura.
+ */
+@Entity({ name: 'liquid', schema: 'oxigeno', database: 'sensors' })
+export class OxygenLiquidReading extends BaseEntity {
+  @PrimaryColumn({ type: 'timestamptz' })
+  timestamp: Date;
+
+  @Column('integer')
+  measure: number; // Nivel en kg
+}

@@ -13,6 +13,7 @@ import { Server } from 'socket.io';
  *  - `transfer`: estado decodificado de los PLC de transferencia
  *  - `water`: niveles de tanque/cisterna
  *  - `pressure`: presiones de oxígeno (ambos sensores juntos)
+ *  - `liquid`: nivel del tanque de oxígeno líquido (kg), cada captura de cámara
  *
  * Nota: usa socket.io; el frontend debe conectarse con un cliente soc.io.
  */
@@ -26,7 +27,7 @@ export class AlertGateway implements OnGatewayInit {
   }
 
   broadcast(
-    event: 'temperature' | 'transfer' | 'water' | 'pressure',
+    event: 'temperature' | 'transfer' | 'water' | 'pressure' | 'liquid',
     payload: unknown,
   ): void {
     this.server?.emit(event, payload);

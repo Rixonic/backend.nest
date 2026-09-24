@@ -12,7 +12,7 @@ import { PdfModule } from './pdf/pdf.module';
 import { NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor } from './sensors/sensor.entity';
 import { NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading } from './sensorReadings/sensorReading.entity';
 import { TankSensorReading, CisternaSensorReading } from './agua/agua.entity';
-import { OxygenSensor, OxygenReading } from './oxigeno/oxigeno.entity';
+import { OxygenSensor, OxygenReading, OxygenLiquidReading } from './oxigeno/oxigeno.entity';
 import { Alarms } from './plc/plc.entity';
 import { WaterModule } from './services/agua/agua.module';
 import { SystemModule } from './services/sistemas/system.module';
@@ -24,6 +24,7 @@ import { ElectricalModule } from './electrical/electrical.module';
 import { WaterMonitorModule } from './water/water.module';
 import { OxygenModule } from './services/oxigeno/oxigeno.module';
 import { OxygenMonitorModule } from './oxygen/oxygen.module';
+import { LiquidMonitorModule } from './liquid/liquid.module';
 import { MonitorModule } from './monitor/monitor.module';
 
 @Module({
@@ -48,7 +49,7 @@ import { MonitorModule } from './monitor/monitor.module';
           username: db.username,
           password: db.password,
           database: db.database,
-          entities: [NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading, TankSensorReading, CisternaSensorReading, OxygenSensor, OxygenReading],
+          entities: [NurserySensor, LaboratorySensor, FarmacySensor, SystemSensor, NurserySensorReading, LaboratorySensorReading, FarmacySensorReading, SystemSensorReading, TankSensorReading, CisternaSensorReading, OxygenSensor, OxygenReading, OxygenLiquidReading],
           autoLoadEntities: false,
           synchronize: false,
         };
@@ -95,6 +96,7 @@ import { MonitorModule } from './monitor/monitor.module';
     ElectricalModule,
     WaterMonitorModule,
     OxygenMonitorModule,
+    LiquidMonitorModule,
     MonitorModule,
   ],
 })

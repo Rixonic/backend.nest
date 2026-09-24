@@ -1,17 +1,35 @@
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { OxygenSensor } from 'src/oxigeno/oxigeno.entity';
-import { OxygenSensorService, OxygenReadingsService } from './oxigeno.service';
+import {
+  OxygenSensorService,
+  OxygenReadingsService,
+  OxygenLiquidService,
+} from './oxigeno.service';
 
 @Controller('oxigeno')
 export class OxygenController {
   constructor(
     private readonly sensorService: OxygenSensorService,
     private readonly readingsService: OxygenReadingsService,
+    private readonly liquidService: OxygenLiquidService,
   ) {}
 
   @Get('/sensors')
   findSensors(): Promise<OxygenSensor[]> {
     return this.sensorService.findAll();
+  }
+
+  @Get('/liquid/last')
+  findLiquidLast(): Promise<{ timestamp: Date; measure: number }[]> {
+    return this.liquidService.findLast();
+  }
+
+  @Get('/liquid/interval')
+  findLiquidInterval(
+    @Query('start') start: Date,
+    @Query('end') end: Date,
+  ): Promise<{ timestamp: Date; measure: number }[]> {
+    return this.liquidService.findInterval(start, end);
   }
 
   @Get('/:sensorId/last/v2')

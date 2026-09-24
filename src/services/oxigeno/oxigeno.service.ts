@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
-import { OxygenSensor, OxygenReading } from '../../oxigeno/oxigeno.entity';
+import {
+  OxygenSensor,
+  OxygenReading,
+  OxygenLiquidReading,
+} from '../../oxigeno/oxigeno.entity';
 
 @Injectable()
 export class OxygenSensorService {
@@ -73,3 +77,47 @@ export class OxygenReadingsService {
       .reverse();
   }
 }
+
+@Injectable()
+export class OxygenLiquidService {
+  constructor(
+    @InjectRepository(OxygenLiquidReading, 'sensors')
+    private readonly liquidRepository: Repository<OxygenLiquidReading>,
+  ) {}
+
+  /** Persiste una lectura de nivel (el monitor llama cada `liquidCapture`). */
+  async create(timestamp: Date, measure: number): Promise<void> {
+    const reading = new OxygenLiquidReading();
+    reading.timestamp = timestamp;
+    reading.measure = measure;
+    await this.liquidRepository.save(reading);
+  }
+
+  /** Últimas N lecturas de nivel (más antigua primero), para el gráfico. */
+  async findLast(): Promise<{ timestamp: Date; measure: number }[]> {
+    const readings = await this.liquidRepository.find({
+      order: { timestamp: 'DESC' },
+      take: 96, // 24 h a una lectura cada 15 min
+    });
+
+    return readings.map(toLiquidDto).reverse();
+  }
+
+  /** Lecturas de nivel en un rango de tiempo (más antigua primero). */
+  async findInterval(
+    start: Date,
+    end: Date,
+  ): Promise<{ timestamp: Date; measure: number }[]> {
+    const readings = await this.liquidRepository.find({
+      where: { timestamp: Between(start, end) },
+      order: { timestamp: 'ASC' },
+    });
+
+    return readings.map(toLiquidDto);
+  }
+}
+
+const toLiquidDto = (reading: OxygenLiquidReading) => ({
+  timestamp: new Date(reading.timestamp),
+  measure: Number(reading.measure),
+});

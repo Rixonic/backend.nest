@@ -11,6 +11,8 @@
  * servicios.
  */
 
+import { CameraConfig } from '../liquid/hikvision-snapshot';
+
 const int = (v: string | undefined, def: number): number => {
   const n = Number(v);
   return Number.isFinite(n) && v !== undefined && v !== '' ? n : def;
@@ -48,6 +50,8 @@ export interface AppConfig {
     oxygenPoll: number;
     /** Persistencia de presión de oxígeno en `oxigeno.historic` (ms). */
     oxygenPersist: number;
+    /** Foto + lectura del LCD del tanque de oxígeno líquido y persistencia en `oxigeno.liquid` (ms). */
+    liquidCapture: number;
     /** Ticks de `monitorTick` sin lectura MQTT antes de marcar el sensor como desconectado. */
     mqttDisconnectTicks: number;
   };
@@ -64,6 +68,10 @@ export interface AppConfig {
     tanque: ModbusDeviceConfig;
     cisterna: ModbusDeviceConfig;
     oxigeno: ModbusDeviceConfig;
+  };
+  cameras: {
+    /** Cámara Hikvision apuntada al display Linde Hawkeye del tanque de oxígeno líquido. */
+    liquid: CameraConfig;
   };
   mqtt: {
     url: string;
@@ -125,6 +133,7 @@ export default (): AppConfig => ({
     waterPersist: int(process.env.INT_WATER_PERSIST, 60_000),
     oxygenPoll: int(process.env.INT_OXYGEN_POLL, 1000),
     oxygenPersist: int(process.env.INT_OXYGEN_PERSIST, 300_000),
+    liquidCapture: int(process.env.INT_LIQUID_CAPTURE, 900_000),
     mqttDisconnectTicks: int(process.env.INT_MQTT_DISCONNECT_TICKS, 10),
   },
   escalation: {
@@ -167,6 +176,15 @@ export default (): AppConfig => ({
       host: str(process.env.OXIGENO_HOST, '192.168.100.32'),
       port: int(process.env.OXIGENO_PORT, 502),
       unitId: int(process.env.OXIGENO_UNIT, 1),
+    },
+  },
+  cameras: {
+    liquid: {
+      host: str(process.env.LIQUID_CAMERA_HOST, '192.168.90.130'),
+      port: int(process.env.LIQUID_CAMERA_PORT, 80),
+      user: str(process.env.LIQUID_CAMERA_USER, 'admin'),
+      pass: str(process.env.LIQUID_CAMERA_PASS, ''),
+      channel: int(process.env.LIQUID_CAMERA_CHANNEL, 101),
     },
   },
   mqtt: {

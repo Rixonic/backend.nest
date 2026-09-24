@@ -24,6 +24,7 @@ export const envValidationSchema = Joi.object({
   INT_WATER_PERSIST: Joi.number().positive().optional(),
   INT_OXYGEN_POLL: Joi.number().positive().optional(),
   INT_OXYGEN_PERSIST: Joi.number().positive().optional(),
+  INT_LIQUID_CAPTURE: Joi.number().positive().optional(),
   INT_MQTT_DISCONNECT_TICKS: Joi.number().positive().optional(),
   ESC_RESEND_INTERVAL: Joi.number().positive().optional(),
   ESC_ACK_EXTEND_INTERVAL: Joi.number().positive().optional(),
@@ -41,6 +42,13 @@ export const envValidationSchema = Joi.object({
   CISTERNA_PORT: Joi.number().port().optional(),
   OXIGENO_HOST: Joi.string().optional(),
   OXIGENO_PORT: Joi.number().port().optional(),
+
+  // Cámara del tanque de oxígeno líquido (Hikvision ISAPI)
+  LIQUID_CAMERA_HOST: Joi.string().optional(),
+  LIQUID_CAMERA_PORT: Joi.number().port().optional(),
+  LIQUID_CAMERA_USER: Joi.string().optional(),
+  LIQUID_CAMERA_PASS: Joi.string().allow('').optional(),
+  LIQUID_CAMERA_CHANNEL: Joi.number().positive().optional(),
 
   // MQTT
   MQTT_URL: Joi.string().optional(),
