@@ -8,11 +8,14 @@ import { decode as decodeJpeg } from 'jpeg-js';
  * con medir si está más oscuro que el fondo del LCD.
  *
  * Robustez:
- * - Registro contra el marco de la ventana del LCD (línea oscura entre la
- *   carcasa blanca y el vidrio): absorbe vibraciones o un leve reencuadre de
- *   hasta ±`EDGE_SEARCH` px sin depender de los dígitos. Alinear "buscando el
- *   corrimiento que mejor decodifica" no sirve: corrido 3-4 px, el LCD sigue
- *   dando números válidos pero incorrectos (p. ej. 2868 en lugar de 2860).
+ * - Registro contra la ventana del LCD, sin depender de los dígitos: se ubican
+ *   sus cuatro bordes (salto de brillo carcasa clara → vidrio oscuro) dentro de
+ *   ±`EDGE_SEARCH` px de la calibración, y de ahí salen el corrimiento y la
+ *   escala con que se mapean las posiciones calibradas de los segmentos. El
+ *   encuadre cambia (el 24/09 se corrió -31 px y el zoom motorizado creció
+ *   ~3 %). Alinear "buscando el corrimiento que mejor decodifica" no sirve:
+ *   corrido 3-4 px, el LCD sigue dando números válidos pero incorrectos
+ *   (p. ej. 2868 en lugar de 2860).
  * - Contraste local: cada segmento se compara contra el LCD a ambos lados de
  *   él (perpendicular al segmento). Tolera cambios de iluminación a lo largo
  *   del día y, sobre todo, reflejos sobre el vidrio: un reflejo es un gradiente
@@ -30,13 +33,19 @@ import { decode as decodeJpeg } from 'jpeg-js';
  * Calibración para el encuadre actual (snapshot 2560x1440). Si se mueve la
  * cámara o se cambia el zoom más allá de lo que cubre el registro, hay que
  * recalibrar con un snapshot nuevo:
- * - `EDGE_TOP`/`EDGE_LEFT`: fila/columna más oscura del borde superior/izquierdo
- *   del marco de la ventana del LCD.
+ * - `WINDOW`: bordes de la ventana del LCD según `edgeAt` (el derecho, debajo
+ *   del escalón de la esquina superior derecha).
  * - `DIGIT0`: centro del segmento superior (a) del primer dígito.
  * - `DIGIT_PITCH`: distancia entre dígitos.
  */
-const EDGE_TOP = { y: 242, xFrom: 1060, xTo: 1200 };
-const EDGE_LEFT = { x: 999, yFrom: 260, yTo: 320 };
+const WINDOW = { left: 995, right: 1200, top: 239, bottom: 453 };
+/**
+ * Franjas donde se miden los bordes: `SIDE_BAND` (filas, bordes izq./der.)
+ * esquiva las etiquetas "kg"/"bar" y el escalón; `CAP_BAND` (columnas, bordes
+ * sup./inf.) cae dentro del vidrio para cualquier corrimiento buscado.
+ */
+const SIDE_BAND = { from: 340, to: 400 };
+const CAP_BAND = { from: 1050, to: 1130 };
 const DIGIT0 = { x: 1082.5, y: 248.5 };
 const DIGIT_PITCH = 33.5;
 const DIGIT_COUNT = 4;
@@ -71,10 +80,17 @@ const PATTERNS: Record<string, number> = {
 };
 const BLANK = '0000000';
 
-/** Corrimiento máximo del marco que se busca (px). */
-const EDGE_SEARCH = 12;
-/** Diferencia mínima de gris entre el marco y su entorno para darlo por encontrado. */
-const MIN_EDGE_CONTRAST = 60;
+/** Corrimiento máximo de cada borde de la ventana que se busca (px). */
+const EDGE_SEARCH = 50;
+/** Salto de brillo mínimo (carcasa − vidrio) para dar un borde por encontrado. */
+const MIN_EDGE_STEP = 40;
+/**
+ * Escala admitida respecto de la calibración, y diferencia máxima entre la
+ * horizontal y la vertical (un zoom es parejo; si difieren, algún borde se
+ * detectó mal).
+ */
+const SCALE_RANGE = { min: 0.9, max: 1.15 };
+const MAX_SCALE_SKEW = 0.03;
 const LOCAL_RANGE = 2;
 /**
  * Distancia (px) del centro del segmento a cada flanco con el que se compara.
@@ -95,7 +111,7 @@ const MIN_GAP = 3;
 const MIN_ON_CONTRAST = 8;
 
 /** Región que se recorta del snapshot: marco + dígitos + margen de búsqueda. */
-const REGION = { left: 975, top: 222, width: 250, height: 100 };
+const REGION = { left: 935, top: 180, width: 325, height: 330 };
 
 export interface LcdReading {
   /** Valor leído (kg), o `null` si la lectura no es confiable. */
@@ -104,8 +120,10 @@ export interface LcdReading {
   digits: string;
   /** Separación entre segmentos encendidos y apagados (mayor = más confiable). */
   gap: number;
-  /** Corrimiento de la imagen respecto de la calibración, según el marco. */
+  /** Corrimiento de la ventana del LCD respecto de la calibración (px). */
   shift: { dx: number; dy: number };
+  /** Escala de la ventana del LCD respecto de la calibración (zoom). */
+  scale: { sx: number; sy: number };
   /** Motivo del descarte cuando `value` es `null`. */
   error?: string;
 }
@@ -124,30 +142,42 @@ export function readLcd(jpeg: Buffer): LcdReading {
       digits: '',
       gap: 0,
       shift: { dx: 0, dy: 0 },
+      scale: { sx: 1, sy: 1 },
       error: 'resolución del snapshot menor a la calibrada',
     };
   }
 
-  const top = findEdge(img, 'row');
-  const left = findEdge(img, 'col');
-  const shift = { dx: left.offset, dy: top.offset };
-  if (!top.found || !left.found) {
-    return {
-      value: null,
-      digits: '',
-      gap: 0,
-      shift,
-      error: 'no se encontró el marco del LCD',
-    };
+  const win = findWindow(img);
+  const shift = { dx: win.left - WINDOW.left, dy: win.top - WINDOW.top };
+  const scale = {
+    sx: (win.right - win.left) / (WINDOW.right - WINDOW.left),
+    sy: (win.bottom - win.top) / (WINDOW.bottom - WINDOW.top),
+  };
+  const noWindow = (error: string): LcdReading => ({
+    value: null,
+    digits: '',
+    gap: 0,
+    shift,
+    scale,
+    error,
+  });
+  if (!win.found) return noWindow('no se encontró el marco del LCD');
+  if (
+    Math.min(scale.sx, scale.sy) < SCALE_RANGE.min ||
+    Math.max(scale.sx, scale.sy) > SCALE_RANGE.max ||
+    Math.abs(scale.sx - scale.sy) > MAX_SCALE_SKEW
+  ) {
+    return noWindow('tamaño del marco del LCD fuera de rango');
   }
 
-  const { digits, gap, onMean } = decode(measure(img, shift.dx, shift.dy));
+  const { digits, gap, onMean } = decode(measure(img, win, scale));
 
   const fail = (error: string): LcdReading => ({
     value: null,
     digits,
     gap,
     shift,
+    scale,
     error,
   });
   if (onMean < MIN_ON_CONTRAST) return fail('display sin contraste suficiente');
@@ -158,7 +188,7 @@ export function readLcd(jpeg: Buffer): LcdReading {
   // Solo se admiten blancos a la izquierda (ceros no significativos apagados).
   if (!/^ *\d+$/.test(digits)) return fail('formato de número inválido');
 
-  return { value: Number(digits.trim()), digits, gap, shift };
+  return { value: Number(digits.trim()), digits, gap, shift, scale };
 }
 
 /**
@@ -190,38 +220,93 @@ function cropGray(jpeg: Buffer): Gray | null {
   return { data, width: REGION.width, height: REGION.height };
 }
 
+interface Window {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  found: boolean;
+}
+
 /**
- * Ubica el borde superior (`row`) o izquierdo (`col`) del marco como la
- * fila/columna más oscura dentro de ±`EDGE_SEARCH` px de la calibración.
- * Devuelve el corrimiento respecto de la posición calibrada.
+ * Ubica los cuatro bordes de la ventana del LCD (salto de brillo carcasa →
+ * vidrio) dentro de ±`EDGE_SEARCH` px de su posición calibrada. Los bordes se
+ * buscan de a pares opuestos (izq./der., sup./inf.), eligiendo el par con más
+ * salto entre los que están a una distancia compatible con `SCALE_RANGE`: así
+ * se admite un cambio de zoom y un borde debilitado por un reflejo no se
+ * confunde con el de la carcasa del equipo, que queda más afuera.
  */
-function findEdge(
+function findWindow(img: Gray): Window {
+  const h = edgePair(img, 'x', WINDOW.left, WINDOW.right);
+  const v = edgePair(img, 'y', WINDOW.top, WINDOW.bottom);
+  return {
+    left: h.near,
+    right: h.far,
+    top: v.near,
+    bottom: v.far,
+    found: h.found && v.found,
+  };
+}
+
+/**
+ * Mejor par de bordes opuestos sobre `axis`: `near` (vidrio hacia coordenadas
+ * mayores) y `far` (vidrio hacia menores), cerca de sus posiciones calibradas.
+ */
+function edgePair(
   img: Gray,
-  kind: 'row' | 'col',
-): { offset: number; found: boolean } {
-  const profile: number[] = [];
-  for (let o = -EDGE_SEARCH; o <= EDGE_SEARCH; o++) {
-    let sum = 0;
-    let n = 0;
-    if (kind === 'row') {
-      const y = EDGE_TOP.y + o - REGION.top;
-      for (let x = EDGE_TOP.xFrom; x < EDGE_TOP.xTo; x++, n++) {
-        sum += img.data[y * img.width + x - REGION.left];
-      }
-    } else {
-      const x = EDGE_LEFT.x + o - REGION.left;
-      for (let y = EDGE_LEFT.yFrom; y < EDGE_LEFT.yTo; y++, n++) {
-        sum += img.data[(y - REGION.top) * img.width + x];
+  axis: 'x' | 'y',
+  near0: number,
+  far0: number,
+): { near: number; far: number; found: boolean } {
+  const nearSteps = edgeSteps(img, axis, near0, 1);
+  const farSteps = edgeSteps(img, axis, far0, -1);
+  let best = { near: near0, far: far0, step: -Infinity, found: false };
+  for (let i = 0; i < nearSteps.length; i++) {
+    for (let j = 0; j < farSteps.length; j++) {
+      const near = near0 - EDGE_SEARCH + i;
+      const far = far0 - EDGE_SEARCH + j;
+      const scale = (far - near) / (far0 - near0);
+      if (scale < SCALE_RANGE.min || scale > SCALE_RANGE.max) continue;
+      const step = nearSteps[i] + farSteps[j];
+      if (step > best.step) {
+        best = {
+          near,
+          far,
+          step,
+          found: Math.min(nearSteps[i], farSteps[j]) >= MIN_EDGE_STEP,
+        };
       }
     }
-    profile.push(sum / n);
   }
-  const min = Math.min(...profile);
-  const max = Math.max(...profile);
-  return {
-    offset: profile.indexOf(min) - EDGE_SEARCH,
-    found: max - min >= MIN_EDGE_CONTRAST,
-  };
+  return best;
+}
+
+/**
+ * Salto carcasa − vidrio para cada posición dentro de ±`EDGE_SEARCH` px de
+ * `calibrated` (coordenada absoluta sobre `axis`), medido entre franjas de
+ * 2-5 px a cada lado sobre `SIDE_BAND` (bordes izq./der.) o `CAP_BAND`
+ * (sup./inf.). `inward` = +1 si el vidrio queda hacia coordenadas mayores.
+ */
+function edgeSteps(
+  img: Gray,
+  axis: 'x' | 'y',
+  calibrated: number,
+  inward: 1 | -1,
+): number[] {
+  const band = axis === 'x' ? SIDE_BAND : CAP_BAND;
+  const mid = (band.from + band.to) / 2;
+  const len = band.to - band.from;
+  // Franja de 4 px centrada en `c` (coordenada absoluta) sobre el eje buscado.
+  const strip = (c: number): number =>
+    axis === 'x'
+      ? mean(img, c - REGION.left, mid - REGION.top, 4, len)
+      : mean(img, mid - REGION.left, c - REGION.top, len, 4);
+  const steps: number[] = [];
+  for (let o = -EDGE_SEARCH; o <= EDGE_SEARCH; o++) {
+    const at = calibrated + o;
+    steps.push(strip(at - 3.5 * inward) - strip(at + 3.5 * inward));
+  }
+  return steps;
 }
 
 interface Decoded {
@@ -249,22 +334,28 @@ function decode(contrasts: number[]): Decoded {
  * Promediar los dos flancos cancela un gradiente de brillo (reflejo) que
  * atraviese el segmento.
  */
-function measure(img: Gray, dx: number, dy: number): number[] {
+function measure(
+  img: Gray,
+  win: Window,
+  scale: { sx: number; sy: number },
+): number[] {
   const out: number[] = [];
   for (let i = 0; i < DIGIT_COUNT; i++) {
-    const ax = DIGIT0.x + DIGIT_PITCH * i + dx - REGION.left;
-    const ay = DIGIT0.y + dy - REGION.top;
     for (const [x, y, o] of SEGMENTS) {
+      // Posición calibrada del segmento, llevada al encuadre actual.
+      const ax =
+        win.left + (DIGIT0.x + DIGIT_PITCH * i + x - WINDOW.left) * scale.sx;
+      const ay = win.top + (DIGIT0.y + y - WINDOW.top) * scale.sy;
       // Búsqueda local, sobre todo en el eje perpendicular al segmento.
       const rx = o === 'v' ? LOCAL_RANGE : 1;
       const ry = o === 'h' ? LOCAL_RANGE : 1;
-      const [w, h] = o === 'h' ? [8, 3] : [3, 8];
+      const [w, h] = o === 'h' ? [12, 3] : [3, 12];
       const [fx, fy] = o === 'h' ? [0, FLANK] : [FLANK, 0];
       let c = -Infinity;
       for (let ly = -ry; ly <= ry; ly++) {
         for (let lx = -rx; lx <= rx; lx++) {
-          const cx = ax + x + lx;
-          const cy = ay + y + ly;
+          const cx = ax - REGION.left + lx;
+          const cy = ay - REGION.top + ly;
           const bg =
             (mean(img, cx - fx, cy - fy, w, h) +
               mean(img, cx + fx, cy + fy, w, h)) /
