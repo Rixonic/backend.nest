@@ -1,32 +1,35 @@
 import { BadRequestException } from '@nestjs/common';
-import { MoreThanOrEqual } from 'typeorm';
 import { PLCService } from './plc.service';
 import { PLCController } from './plc.controller';
 
 describe('PLCService.findAll', () => {
-  let find: jest.Mock;
+  let query: jest.Mock;
   let service: PLCService;
 
   beforeEach(() => {
-    find = jest.fn().mockResolvedValue([]);
-    service = new PLCService({ find } as any);
+    query = jest.fn().mockResolvedValue([]);
+    service = new PLCService({ query } as any);
   });
 
-  it('aplica take, orden DESC y filtro de source sin since', async () => {
+  it('usa TOP, orden DESC y filtro de source sin since', async () => {
     await service.findAll({ limit: 50 });
-    const arg = find.mock.calls[0][0];
-    expect(arg.take).toBe(50);
-    expect(arg.order).toEqual({ e3TimeStamp: 'DESC' });
-    expect(arg.where.source).toBeDefined();
-    expect(arg.where.e3TimeStamp).toBeUndefined();
+    const [sql, params] = query.mock.calls[0];
+    expect(sql).toContain('TOP (@0)');
+    expect(sql).toContain("NOT LIKE 'PLC_Temperatura%'");
+    expect(sql).toContain('ORDER BY E3TimeStamp DESC');
+    expect(sql).not.toContain('OFFSET');
+    expect(sql).not.toContain('FETCH');
+    expect(sql).not.toContain('@1');
+    expect(params).toEqual([50]);
   });
 
-  it('agrega e3TimeStamp >= since cuando se da since', async () => {
+  it('agrega E3TimeStamp >= @1 cuando se da since', async () => {
     const since = new Date('2026-01-01T00:00:00Z');
     await service.findAll({ limit: 10, since });
-    const arg = find.mock.calls[0][0];
-    expect(arg.where.e3TimeStamp).toEqual(MoreThanOrEqual(since));
-    expect(arg.where.source).toBeDefined();
+    const [sql, params] = query.mock.calls[0];
+    expect(sql).toContain('E3TimeStamp >= @1');
+    expect(sql).toContain('TOP (@0)');
+    expect(params).toEqual([10, since]);
   });
 });
 
