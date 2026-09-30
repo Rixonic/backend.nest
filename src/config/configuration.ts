@@ -50,6 +50,10 @@ export interface AppConfig {
     oxygenPoll: number;
     /** Persistencia de presión de oxígeno en `oxigeno.historic` (ms). */
     oxygenPersist: number;
+    /** Muestreo de presión de CO2 (Ramos) por Modbus + emisión WebSocket (ms). */
+    co2Poll: number;
+    /** Persistencia de presión de CO2 en `co2.historic` (ms). */
+    co2Persist: number;
     /** Foto + lectura del LCD del tanque de oxígeno líquido y persistencia en `oxigeno.liquid` (ms). */
     liquidCapture: number;
     /** Ticks de `monitorTick` sin lectura MQTT antes de marcar el sensor como desconectado. */
@@ -68,6 +72,11 @@ export interface AppConfig {
     tanque: ModbusDeviceConfig;
     cisterna: ModbusDeviceConfig;
     oxigeno: ModbusDeviceConfig;
+    co2: ModbusDeviceConfig;
+  };
+  co2: {
+    /** Webhook (POST JSON) al que se avisa la baja presión de CO2; vacío = sólo log. */
+    alertWebhookUrl: string;
   };
   cameras: {
     /** Cámara Hikvision apuntada al display Linde Hawkeye del tanque de oxígeno líquido. */
@@ -138,6 +147,8 @@ export default (): AppConfig => ({
     waterPersist: int(process.env.INT_WATER_PERSIST, 60_000),
     oxygenPoll: int(process.env.INT_OXYGEN_POLL, 1000),
     oxygenPersist: int(process.env.INT_OXYGEN_PERSIST, 300_000),
+    co2Poll: int(process.env.INT_CO2_POLL, 1000),
+    co2Persist: int(process.env.INT_CO2_PERSIST, 300_000),
     liquidCapture: int(process.env.INT_LIQUID_CAPTURE, 900_000),
     mqttDisconnectTicks: int(process.env.INT_MQTT_DISCONNECT_TICKS, 10),
   },
@@ -182,6 +193,15 @@ export default (): AppConfig => ({
       port: int(process.env.OXIGENO_PORT, 502),
       unitId: int(process.env.OXIGENO_UNIT, 1),
     },
+    co2: {
+      name: 'co2',
+      host: str(process.env.CO2_HOST, '192.168.90.31'),
+      port: int(process.env.CO2_PORT, 502),
+      unitId: int(process.env.CO2_UNIT, 1),
+    },
+  },
+  co2: {
+    alertWebhookUrl: str(process.env.CO2_ALERT_WEBHOOK_URL, ''),
   },
   cameras: {
     liquid: {
