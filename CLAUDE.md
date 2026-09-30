@@ -55,7 +55,7 @@ Services are organized by hospital department under [src/services/](src/services
 | `LaboratoryModule` | `/laboratorio` | Laboratory sensors |
 | `SystemModule` | `/sistemas` | Systems/infrastructure sensors |
 | `WaterModule` | `/agua` | Water level tanks (tanque/cisterna) |
-| `PLCModule` | `/plc` | PLC alarm queries (MSSQL) |
+| `PLCModule` | `/plc` | PLC alarm queries (MSSQL); `GET /plc/alarms?limit=&since=` (limit default 200, max 1000; since ISO, filters e3TimeStamp >=) |
 | `PdfModule` | `/pdf` | PDF/ZIP report generation |
 
 ### Data acquisition & alerting layer (migrated from Node-RED)

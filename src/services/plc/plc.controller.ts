@@ -1,21 +1,12 @@
 import {
-  Body,
+  BadRequestException,
   Controller,
-  Delete,
   Get,
-  Param,
-  Post,
   ParseIntPipe,
   Query,
-  Put,
 } from '@nestjs/common';
-import { CreateSensorReadingDto } from 'src/sensorReadings/dto/create-sensorReading.dto';
-import { CreateSensorDto } from 'src/sensors/dto/create-sensor.dto';
-import { ReadSensorReadingDto } from 'src/sensorReadings/dto/read-sensorReading.dto';
-import { Sensor } from 'src/sensors/sensor.entity';
-import { PLCService } from './plc.service';
-import { UpdateSensorDto } from 'src/sensors/dto/update-sensor.dto';
-import { Alarms } from 'src/plc/plc.entity';
+import { PLCService, DEFAULT_LIMIT, MAX_LIMIT } from './plc.service';
+import { Alarms } from '../../plc/plc.entity';
 
 @Controller('plc')
 export class PLCController {
@@ -23,11 +14,36 @@ export class PLCController {
     private readonly PLCService: PLCService,
   ) {}
 
-  //Manejo de sensores
-
-
   @Get('/alarms')
-  findAll(): Promise<Alarms[]> {
-    return this.PLCService.findAll();
+  findAll(
+    @Query(
+      'limit',
+      new ParseIntPipe({
+        optional: true,
+        exceptionFactory: () =>
+          new BadRequestException('limit debe ser un entero'),
+      }),
+    )
+    limit?: number,
+    @Query('since') since?: string,
+  ): Promise<Alarms[]> {
+    const finalLimit = limit ?? DEFAULT_LIMIT;
+    if (finalLimit < 1 || finalLimit > MAX_LIMIT) {
+      throw new BadRequestException(
+        `limit debe estar entre 1 y ${MAX_LIMIT}`,
+      );
+    }
+
+    let sinceDate: Date | undefined;
+    if (since !== undefined) {
+      if (isNaN(Date.parse(since))) {
+        throw new BadRequestException(
+          'since debe ser una fecha ISO válida',
+        );
+      }
+      sinceDate = new Date(since);
+    }
+
+    return this.PLCService.findAll({ limit: finalLimit, since: sinceDate });
   }
 }
