@@ -33,6 +33,14 @@ export interface ModbusDeviceConfig {
   unitId: number;
 }
 
+/** Medidor de nivel de combustible de un grupo electrógeno (Famil L-510 tras gateway EE11). */
+export interface FuelDeviceConfig {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+}
+
 export interface AppConfig {
   /** Todos los intervalos en milisegundos, salvo donde se indique. */
   intervals: {
@@ -56,6 +64,10 @@ export interface AppConfig {
     co2Persist: number;
     /** Foto + lectura del LCD del tanque de oxígeno líquido y persistencia en `oxigeno.liquid` (ms). */
     liquidCapture: number;
+    /** Re-emisión periódica del estado de combustible por WebSocket (ms). */
+    fuelBroadcast: number;
+    /** Tiempo sin trama válida de un medidor de combustible para darlo por offline (ms). */
+    fuelStale: number;
     /** Ticks de `monitorTick` sin lectura MQTT antes de marcar el sensor como desconectado. */
     mqttDisconnectTicks: number;
   };
@@ -77,6 +89,10 @@ export interface AppConfig {
   co2: {
     /** Webhook (POST JSON) al que se avisa la baja presión de CO2; vacío = sólo log. */
     alertWebhookUrl: string;
+  };
+  fuel: {
+    /** Medidores de combustible de los grupos electrógenos (push ASCII por TCP, sin Modbus). */
+    devices: FuelDeviceConfig[];
   };
   cameras: {
     /** Cámara Hikvision apuntada al display Linde Hawkeye del tanque de oxígeno líquido. */
@@ -150,6 +166,8 @@ export default (): AppConfig => ({
     co2Poll: int(process.env.INT_CO2_POLL, 1000),
     co2Persist: int(process.env.INT_CO2_PERSIST, 300_000),
     liquidCapture: int(process.env.INT_LIQUID_CAPTURE, 900_000),
+    fuelBroadcast: int(process.env.INT_FUEL_BROADCAST, 5000),
+    fuelStale: int(process.env.INT_FUEL_STALE, 10_000),
     mqttDisconnectTicks: int(process.env.INT_MQTT_DISCONNECT_TICKS, 10),
   },
   escalation: {
@@ -202,6 +220,22 @@ export default (): AppConfig => ({
   },
   co2: {
     alertWebhookUrl: str(process.env.CO2_ALERT_WEBHOOK_URL, ''),
+  },
+  fuel: {
+    devices: [
+      {
+        id: 'g2',
+        name: 'Grupo electrógeno G2',
+        host: str(process.env.FUEL_G2_HOST, '192.168.90.115'),
+        port: int(process.env.FUEL_G2_PORT, 8899),
+      },
+      {
+        id: 'g3',
+        name: 'Grupo electrógeno G3',
+        host: str(process.env.FUEL_G3_HOST, '192.168.90.116'),
+        port: int(process.env.FUEL_G3_PORT, 8899),
+      },
+    ],
   },
   cameras: {
     liquid: {

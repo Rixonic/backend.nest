@@ -27,6 +27,7 @@ import { Co2Module } from './services/co2/co2.module';
 import { Co2Sensor, Co2Reading } from './co2/co2.entity';
 import { OxygenMonitorModule } from './oxygen/oxygen.module';
 import { Co2MonitorModule } from './co2-monitor/co2-monitor.module';
+import { FuelMonitorModule } from './fuel/fuel-monitor.module';
 import { LiquidMonitorModule } from './liquid/liquid.module';
 import { MonitorModule } from './monitor/monitor.module';
 
@@ -101,6 +102,7 @@ import { MonitorModule } from './monitor/monitor.module';
     WaterMonitorModule,
     OxygenMonitorModule,
     Co2MonitorModule,
+    FuelMonitorModule,
     LiquidMonitorModule,
     MonitorModule,
   ],

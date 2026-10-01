@@ -5,6 +5,7 @@ import { WaterMonitorService } from '../water/water-monitor.service';
 import { OxygenMonitorService } from '../oxygen/oxygen-monitor.service';
 import { LiquidMonitorService } from '../liquid/liquid-monitor.service';
 import { Co2MonitorService } from '../co2-monitor/co2-monitor.service';
+import { FuelMonitorService } from '../fuel/fuel-monitor.service';
 
 /**
  * Expone el estado en vivo actual (en memoria) de todos los dominios en una sola
@@ -21,6 +22,7 @@ export class MonitorController {
     private readonly oxygen: OxygenMonitorService,
     private readonly liquid: LiquidMonitorService,
     private readonly co2: Co2MonitorService,
+    private readonly fuel: FuelMonitorService,
   ) {}
 
   @Get('snapshot')
@@ -32,6 +34,7 @@ export class MonitorController {
       oxygen: this.oxygen.getSnapshot(),
       liquid: this.liquid.getSnapshot(),
       co2: this.co2.getSnapshot(),
+      fuel: this.fuel.getSnapshot(),
     };
   }
 }

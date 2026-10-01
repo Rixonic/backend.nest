@@ -15,6 +15,7 @@ import { Server } from 'socket.io';
  *  - `pressure`: presiones de oxígeno (ambos sensores juntos)
  *  - `liquid`: nivel del tanque de oxígeno líquido (kg), cada captura de cámara
  *  - `co2`: presión de CO2 de Ramos (ambos canales juntos, con corriente y estado)
+ *  - `fuel`: nivel de combustible (%) de los grupos electrógenos G2/G3, al cambiar y cada `fuelBroadcast`
  *
  * Nota: usa socket.io; el frontend debe conectarse con un cliente soc.io.
  */
@@ -34,7 +35,8 @@ export class AlertGateway implements OnGatewayInit {
       | 'water'
       | 'pressure'
       | 'liquid'
-      | 'co2',
+      | 'co2'
+      | 'fuel',
     payload: unknown,
   ): void {
     this.server?.emit(event, payload);

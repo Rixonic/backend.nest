@@ -27,6 +27,8 @@ export const envValidationSchema = Joi.object({
   INT_CO2_POLL: Joi.number().positive().optional(),
   INT_CO2_PERSIST: Joi.number().positive().optional(),
   INT_LIQUID_CAPTURE: Joi.number().positive().optional(),
+  INT_FUEL_BROADCAST: Joi.number().positive().optional(),
+  INT_FUEL_STALE: Joi.number().positive().optional(),
   INT_MQTT_DISCONNECT_TICKS: Joi.number().positive().optional(),
   ESC_RESEND_INTERVAL: Joi.number().positive().optional(),
   ESC_ACK_EXTEND_INTERVAL: Joi.number().positive().optional(),
@@ -48,6 +50,12 @@ export const envValidationSchema = Joi.object({
   CO2_PORT: Joi.number().port().optional(),
   CO2_UNIT: Joi.number().positive().optional(),
   CO2_ALERT_WEBHOOK_URL: Joi.string().allow('').optional(),
+
+  // Medidores de combustible de grupos electrógenos (push ASCII por TCP)
+  FUEL_G2_HOST: Joi.string().optional(),
+  FUEL_G2_PORT: Joi.number().port().optional(),
+  FUEL_G3_HOST: Joi.string().optional(),
+  FUEL_G3_PORT: Joi.number().port().optional(),
 
   // Cámara del tanque de oxígeno líquido (Hikvision ISAPI)
   LIQUID_CAMERA_HOST: Joi.string().optional(),
