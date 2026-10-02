@@ -200,7 +200,7 @@ export function decodeCastelar(regs: number[]): SignalMap {
     DESTR1: b(2),
     TTR1: b(3),
     SDE_MT: b(4),
-    MT: b(5),
+    MT: !bits[5], // bit 5 = 1 con la celda cerrada (verificado en prueba 2026-10-01)
     INCENDIO: b(6),
     AUT: b(7),
     SDE_Q4: b(8),
