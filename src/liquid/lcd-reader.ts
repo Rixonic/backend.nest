@@ -7,6 +7,9 @@ import { decode as decodeJpeg } from 'jpeg-js';
  * segmento de cada dígito tiene una posición conocida en la imagen, y alcanza
  * con medir si está más oscuro que el fondo del LCD.
  *
+ * Se prueban en orden los encuadres conocidos de la cámara (`FRAMINGS`) y se
+ * devuelve la primera lectura válida.
+ *
  * Robustez:
  * - Registro contra la ventana del LCD, sin depender de los dígitos: se ubican
  *   sus cuatro bordes (salto de brillo carcasa clara → vidrio oscuro) dentro de
@@ -98,6 +101,33 @@ const LOCAL_RANGE = 2;
  */
 const FLANK = 4;
 /**
+ * El segmento `a` queda a pocos px del borde superior de la ventana (~8 en el
+ * encuadre del 03/10, ~9,5 en el original) y el marco está inclinado ~0,9°, así
+ * que en los dígitos de la derecha el flanco superior de `a` puede pisar la
+ * carcasa clara: el segmento apagado parece encendido y el número sigue siendo
+ * válido (se leyó 5619 por 5614). Por eso, en la búsqueda
+ * local de `a` se descartan los corrimientos cuyo flanco superior quede a menos
+ * de `FRAME_MARGIN` px del borde superior (ya corregido por la inclinación).
+ * Descartar es seguro: el resultado es el máximo sobre los corrimientos.
+ */
+const FRAME_MARGIN = 2;
+/**
+ * Columnas (coordenadas calibradas) donde se mide la altura del borde superior
+ * para estimar la inclinación: bien adentro de las esquinas y separadas.
+ */
+const TILT_BANDS = {
+  left: { from: 1005, to: 1065 },
+  right: { from: 1120, to: 1180 },
+};
+/**
+ * Inclinación del borde superior en el encuadre de la calibración (medida sobre
+ * `lcd-2860.jpg`). Las posiciones calibradas de los dígitos respecto del borde
+ * izquierdo ya la incluyen, así que al girar en x solo se corrige la diferencia.
+ */
+const TILT_REF = 0.0156;
+/** Inclinación máxima admitida del marco (≈ 3,4°); más allá se descarta. */
+const MAX_TILT = 0.06;
+/**
  * Separación mínima entre el segmento encendido más débil y el apagado más
  * fuerte, relativa al contraste medio de los encendidos. Es relativa porque el
  * contraste escala con la luz: al atardecer el fondo del LCD cae de ~90 a ~45
@@ -113,6 +143,24 @@ const MIN_ON_CONTRAST = 8;
 /** Región que se recorta del snapshot: marco + dígitos + margen de búsqueda. */
 const REGION = { left: 935, top: 180, width: 325, height: 330 };
 
+interface Framing {
+  dx: number;
+  dy: number;
+}
+
+/**
+ * Encuadres conocidos de la cámara, en orden de prueba. Las constantes de
+ * calibración quedan en las coordenadas del encuadre original; cada encuadre es
+ * un corrimiento grueso de toda la imagen (cuánto se movió la ventana del LCD).
+ * El registro fino (±`EDGE_SEARCH` y escala) se sigue haciendo contra los
+ * bordes de la ventana. Para soportar una nueva posición de la cámara, agregar
+ * una entrada acá (corrimiento = cuánto se movió la ventana) y un fixture.
+ */
+const FRAMINGS: Framing[] = [
+  { dx: -216, dy: -90 }, // desde el 03/10/2026 (cámara golpeada durante una recarga)
+  { dx: 0, dy: 0 }, // encuadre original (24/09/2026), el de la calibración
+];
+
 export interface LcdReading {
   /** Valor leído (kg), o `null` si la lectura no es confiable. */
   value: number | null;
@@ -120,10 +168,18 @@ export interface LcdReading {
   digits: string;
   /** Separación entre segmentos encendidos y apagados (mayor = más confiable). */
   gap: number;
-  /** Corrimiento de la ventana del LCD respecto de la calibración (px). */
+  /**
+   * Corrimiento de la ventana del LCD respecto de la calibración (px), incluido
+   * el del encuadre (`FRAMINGS`) con que se leyó.
+   */
   shift: { dx: number; dy: number };
   /** Escala de la ventana del LCD respecto de la calibración (zoom). */
   scale: { sx: number; sy: number };
+  /**
+   * Inclinación del borde superior de la ventana (px de bajada por px hacia la
+   * derecha; ≈ tan del giro de la cámara). Solo para diagnóstico.
+   */
+  tilt?: number;
   /** Motivo del descarte cuando `value` es `null`. */
   error?: string;
 }
@@ -135,20 +191,36 @@ interface Gray {
 }
 
 export function readLcd(jpeg: Buffer): LcdReading {
-  const img = cropGray(jpeg);
-  if (!img) {
-    return {
+  const rgb = decodeJpeg(jpeg, { useTArray: true, formatAsRGBA: false });
+  let best: LcdReading | null = null;
+  for (const framing of FRAMINGS) {
+    const img = cropGray(rgb, framing);
+    if (!img) continue;
+    const r = readFraming(img, framing);
+    if (r.value !== null) return r;
+    // Entre fallas se prefiere la que pasó la etapa de la ventana (tiene
+    // dígitos); a igualdad se queda la primera probada.
+    if (!best || (best.digits === '' && r.digits !== '')) best = r;
+  }
+  return (
+    best ?? {
       value: null,
       digits: '',
       gap: 0,
       shift: { dx: 0, dy: 0 },
       scale: { sx: 1, sy: 1 },
       error: 'resolución del snapshot menor a la calibrada',
-    };
-  }
+    }
+  );
+}
 
+/** Lee el display suponiendo que la cámara está en el encuadre `framing`. */
+function readFraming(img: Gray, framing: Framing): LcdReading {
   const win = findWindow(img);
-  const shift = { dx: win.left - WINDOW.left, dy: win.top - WINDOW.top };
+  const shift = {
+    dx: win.left - WINDOW.left + framing.dx,
+    dy: win.top - WINDOW.top + framing.dy,
+  };
   const scale = {
     sx: (win.right - win.left) / (WINDOW.right - WINDOW.left),
     sy: (win.bottom - win.top) / (WINDOW.bottom - WINDOW.top),
@@ -170,7 +242,20 @@ export function readLcd(jpeg: Buffer): LcdReading {
     return noWindow('tamaño del marco del LCD fuera de rango');
   }
 
-  const { digits, gap, onMean } = decode(measure(img, win, scale));
+  const tilt = measureTilt(img, win, scale);
+  if (tilt === null || Math.abs(tilt) > MAX_TILT) {
+    return {
+      value: null,
+      digits: '',
+      gap: 0,
+      shift,
+      scale,
+      ...(tilt === null ? {} : { tilt }),
+      error: 'inclinación del marco del LCD fuera de rango',
+    };
+  }
+
+  const { digits, gap, onMean } = decode(measure(img, win, scale, tilt));
 
   const fail = (error: string): LcdReading => ({
     value: null,
@@ -178,6 +263,7 @@ export function readLcd(jpeg: Buffer): LcdReading {
     gap,
     shift,
     scale,
+    tilt,
     error,
   });
   if (onMean < MIN_ON_CONTRAST) return fail('display sin contraste suficiente');
@@ -188,28 +274,37 @@ export function readLcd(jpeg: Buffer): LcdReading {
   // Solo se admiten blancos a la izquierda (ceros no significativos apagados).
   if (!/^ *\d+$/.test(digits)) return fail('formato de número inválido');
 
-  return { value: Number(digits.trim()), digits, gap, shift, scale };
+  return { value: Number(digits.trim()), digits, gap, shift, scale, tilt };
 }
 
 /**
- * Decodifica el JPEG y devuelve `REGION` en escala de grises (luminancia
- * Rec. 709). Se usa `jpeg-js` (JavaScript puro) en lugar de `sharp`: los
- * binarios precompilados de `sharp` exigen CPU x86-64-v2 y el servidor de
- * producción no la tiene. Decodificar el cuadro completo tarda ~250 ms, de
- * sobra para una captura cada 15 min.
+ * Recorta `REGION` desplazada según `framing` y la pasa a escala de grises
+ * (luminancia Rec. 709), o `null` si no entra en la imagen. Todo lo que sigue
+ * trabaja en coordenadas relativas a `REGION`, así que el encuadre solo cambia
+ * qué rectángulo del snapshot se recorta. El JPEG se decodifica con `jpeg-js`
+ * (JavaScript puro) en lugar de `sharp`: los binarios precompilados de `sharp`
+ * exigen CPU x86-64-v2 y el servidor de producción no la tiene. Decodificar el
+ * cuadro completo tarda ~250 ms (se hace una sola vez por lectura), de sobra
+ * para una captura cada 15 min.
  */
-function cropGray(jpeg: Buffer): Gray | null {
-  const rgb = decodeJpeg(jpeg, { useTArray: true, formatAsRGBA: false });
+function cropGray(
+  rgb: { data: Uint8Array; width: number; height: number },
+  framing: Framing,
+): Gray | null {
+  const left = REGION.left + framing.dx;
+  const top = REGION.top + framing.dy;
   if (
-    rgb.width < REGION.left + REGION.width ||
-    rgb.height < REGION.top + REGION.height
+    left < 0 ||
+    top < 0 ||
+    rgb.width < left + REGION.width ||
+    rgb.height < top + REGION.height
   ) {
     return null;
   }
   const data = new Uint8Array(REGION.width * REGION.height);
   for (let y = 0; y < REGION.height; y++) {
     for (let x = 0; x < REGION.width; x++) {
-      const i = ((REGION.top + y) * rgb.width + REGION.left + x) * 3;
+      const i = ((top + y) * rgb.width + left + x) * 3;
       data[y * REGION.width + x] = Math.round(
         0.2126 * rgb.data[i] +
           0.7152 * rgb.data[i + 1] +
@@ -338,14 +433,26 @@ function measure(
   img: Gray,
   win: Window,
   scale: { sx: number; sy: number },
+  tilt: number,
 ): number[] {
   const out: number[] = [];
+  // Punto de giro: columna donde se midió `win.top` y fila donde se midieron
+  // `win.left`/`win.right`.
+  const xRef =
+    win.left + ((CAP_BAND.from + CAP_BAND.to) / 2 - WINDOW.left) * scale.sx;
+  const yRef =
+    win.top + ((SIDE_BAND.from + SIDE_BAND.to) / 2 - WINDOW.top) * scale.sy;
   for (let i = 0; i < DIGIT_COUNT; i++) {
-    for (const [x, y, o] of SEGMENTS) {
-      // Posición calibrada del segmento, llevada al encuadre actual.
-      const ax =
+    for (const [k, [x, y, o]] of SEGMENTS.entries()) {
+      // Posición calibrada del segmento, llevada al encuadre actual (corrimiento
+      // y escala) y girada según la inclinación del marco.
+      const px =
         win.left + (DIGIT0.x + DIGIT_PITCH * i + x - WINDOW.left) * scale.sx;
-      const ay = win.top + (DIGIT0.y + y - WINDOW.top) * scale.sy;
+      const py = win.top + (DIGIT0.y + y - WINDOW.top) * scale.sy;
+      const ax = px - (tilt - TILT_REF) * (py - yRef);
+      const ay = py + tilt * (px - xRef);
+      // Borde superior del marco sobre este segmento (coordenada absoluta).
+      const topHere = win.top + tilt * (ax - xRef);
       // Búsqueda local, sobre todo en el eje perpendicular al segmento.
       const rx = o === 'v' ? LOCAL_RANGE : 1;
       const ry = o === 'h' ? LOCAL_RANGE : 1;
@@ -356,6 +463,10 @@ function measure(
         for (let lx = -rx; lx <= rx; lx++) {
           const cx = ax - REGION.left + lx;
           const cy = ay - REGION.top + ly;
+          // Segmento `a`: el flanco superior (3 filas) no debe tocar el marco.
+          if (k === 0 && cy - fy - 1.5 < topHere - REGION.top + FRAME_MARGIN) {
+            continue;
+          }
           const bg =
             (mean(img, cx - fx, cy - fy, w, h) +
               mean(img, cx + fx, cy + fy, w, h)) /
@@ -367,6 +478,42 @@ function measure(
     }
   }
   return out;
+}
+
+/**
+ * Inclinación del borde superior de la ventana (px de bajada por px hacia la
+ * derecha), o `null` si no se pudo medir. En cada una de dos franjas de
+ * columnas (`TILT_BANDS`) se promedia el gris por fila y se ubica, con
+ * precisión sub-píxel, el cruce por el punto medio entre la carcasa y la línea
+ * oscura del marco sobre la bajada, buscando cerca de `win.top`.
+ */
+function measureTilt(
+  img: Gray,
+  win: Window,
+  scale: { sx: number; sy: number },
+): number | null {
+  const edgeAt = (band: { from: number; to: number }) => {
+    const w = Math.round((band.to - band.from) * scale.sx);
+    const cx = win.left + ((band.from + band.to) / 2 - WINDOW.left) * scale.sx;
+    const top = Math.round(win.top - REGION.top);
+    const rowMean = (r: number) => mean(img, cx - REGION.left, r + 0.5, w, 1);
+    let bezel = 0;
+    for (let r = top - 10; r <= top - 6; r++) bezel += rowMean(r) / 5;
+    let dark = Infinity;
+    for (let r = top - 4; r <= top + 6; r++) dark = Math.min(dark, rowMean(r));
+    if (bezel - dark < MIN_EDGE_STEP) return null;
+    const mid = (bezel + dark) / 2;
+    for (let r = top - 6; r <= top + 6; r++) {
+      const [a, b] = [rowMean(r), rowMean(r + 1)];
+      if (a >= mid && b < mid)
+        return { x: cx, y: r + 0.5 + (a - mid) / (a - b) };
+    }
+    return null;
+  };
+  const l = edgeAt(TILT_BANDS.left);
+  const r = edgeAt(TILT_BANDS.right);
+  if (!l || !r) return null;
+  return (r.y - l.y) / (r.x - l.x);
 }
 
 /** Media de gris de un rectángulo `w`×`h` centrado en (`cx`, `cy`). */

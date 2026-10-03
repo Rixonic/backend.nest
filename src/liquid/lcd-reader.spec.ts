@@ -45,6 +45,16 @@ describe('readLcd', () => {
     // Noche con la cámara en modo auto (luz blanca ColorVu encendida). El zoom
     // motorizado había crecido ~3 % y la imagen estaba corrida (-31, -26).
     ['lcd-2576-night-light.jpg', 2576],
+    // 03/10: cámara corrida (-219, -92) al golpearla durante la recarga del
+    // tanque; fuera del alcance del registro (±50 px), se lee con el encuadre
+    // nuevo de `FRAMINGS`.
+    ['lcd-5627-moved.jpg', 5627],
+    // Mismo encuadre, imagen velada (poco contraste) durante la recarga.
+    ['lcd-2199-moved-haze.jpg', 2199],
+    // 03/10 14:37, mismo encuadre: el segmento `a` queda más cerca del borde
+    // superior y el marco está inclinado ~0,9°; el flanco superior de `a`
+    // pisaba la carcasa y el 4 se leía 9 (5619, válido pero incorrecto).
+    ['lcd-5614-moved.jpg', 5614],
   ])('lee el nivel del snapshot real %s', (file, expected) => {
     const r = readLcd(load(file));
     expect(r.error).toBeUndefined();
@@ -74,6 +84,11 @@ describe('readLcd', () => {
   ])('tolera un cambio de zoom x%f con corrimiento (%i, %i)', (k, dx, dy) => {
     const r = readLcd(reframed('lcd-2860.jpg', dx, dy, k));
     expect(r.value).toBe(2860);
+  });
+
+  it('informa el corrimiento incluyendo el del encuadre', () => {
+    expect(readLcd(load('lcd-5627-moved.jpg')).shift.dx).toBeLessThan(-200);
+    expect(readLcd(load('lcd-2860.jpg')).shift).toEqual({ dx: 0, dy: 0 });
   });
 
   it('descarta una imagen sin display', () => {
